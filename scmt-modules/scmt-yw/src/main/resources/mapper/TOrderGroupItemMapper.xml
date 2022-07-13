@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scmt.healthy.mapper.TOrderGroupItemMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.scmt.healthy.entity.TOrderGroupItem">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="short_name" property="shortName"/>
+        <result column="order_num" property="orderNum"/>
+        <result column="sale_price" property="salePrice"/>
+        <result column="discount" property="discount"/>
+        <result column="discount_price" property="discountPrice"/>
+        <result column="suitable_range" property="suitableRange"/>
+        <result column="introduce" property="introduce"/>
+        <result column="address" property="address"/>
+        <result column="remark" property="remark"/>
+        <result column="del_flag" property="delFlag"/>
+        <result column="create_id" property="createId"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_id" property="updateId"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="delete_id" property="deleteId"/>
+        <result column="delete_time" property="deleteTime"/>
+        <result column="department_id" property="departmentId"/>
+        <result column="template" property="template"/>
+        <result column="service_type" property="serviceType"/>
+        <result column="specimen" property="specimen"/>
+        <result column="diagnostic" property="diagnostic"/>
+        <result column="group_id" property="groupId"/>
+        <result column="portfolio_project_id" property="portfolioProjectId"/>
+        <result column="office_id" property="officeId"/>
+        <result column="is_file" property="isFile"/>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id
+        , name, short_name, order_num, sale_price, discount, discount_price, suitable_range, introduce, address, remark, del_flag, create_id, create_time, update_id, update_time, delete_id, delete_time, department_id, template, service_type, specimen, diagnostic, group_id, portfpolio_project_id,is_file
+    </sql>
+    <select id="queryDataListByGroupId" resultType="com.scmt.healthy.entity.TOrderGroupItem">
+        SELECT t_order_group_item.*,  relation_person_project_check.state AS status
+        FROM t_order_group_item
+        LEFT JOIN relation_person_project_check ON relation_person_project_check.order_group_item_id = t_order_group_item.id AND
+                                                   relation_person_project_check.person_id=#{personId}
+        ${ew.customSqlSegment}
+    </select>
+
+    <select id="getAllCheckCount" resultType="integer">
+        SELECT SUM(num)
+        FROM (
+                 SELECT count(0) AS num
+                 FROM t_order_group_item
+                 WHERE group_id = #{groupId} AND del_flag = 0
+                 union
+                 SELECT COUNT(0) AS num
+                 FROM t_review_project
+                 WHERE group_id = #{groupId}
+                   AND person_id = #{personId}
+                   AND del_flag = 0
+                   AND is_pass = 2
+             ) a
+    </select>
+
+    <select id="getDepartResultCount" resultType="integer">
+        SELECT count(0) FROM (SELECT count(0) FROM t_depart_result WHERE person_id = #{personId}
+        and group_item_id IN (
+            SELECT id FROM t_order_group_item WHERE group_id =#{groupId} AND del_flag = 0
+            union
+            SELECT id FROM t_review_project WHERE group_id = #{groupId} AND person_id = #{personId} AND del_flag = 0
+            )
+        group by group_item_id) as d1
+    </select>
+
+    <select id="queryOrderGroupItemList" resultType="com.scmt.healthy.entity.TOrderGroupItem">
+        select * from t_order_group_item
+        where group_order_id = #{groupOrderId} and group_id = #{groupId} AND del_flag = 0
+    </select>
+
+    <select id="listByQueryWrapper" resultType="com.scmt.healthy.entity.TOrderGroupItem">
+        SELECT
+        t_order_group_item.*,
+        relation_person_project_check.state AS `status`
+        FROM
+        t_order_group_item
+        LEFT JOIN relation_person_project_check ON relation_person_project_check.order_group_item_id = t_order_group_item.id
+        AND relation_person_project_check.person_id = #{orderGroupItem.personId}
+        WHERE
+        t_order_group_item.del_flag = 0
+        AND t_order_group_item.group_id =  #{orderGroupItem.groupId}
+        <if test="orderGroupItem.officeList != null and orderGroupItem.officeList.size > 0">
+            AND t_order_group_item.office_id IN
+            <foreach collection="orderGroupItem.officeList" item="item" open="(" separator="," close=")" index="index">
+                #{item}
+            </foreach>
+        </if>
+        ORDER BY t_order_group_item.office_id,t_order_group_item.`name` ASC
+    </select>
+</mapper>

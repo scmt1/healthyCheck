@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scmt.healthy.mapper.TComboMapper">
+
+    <select id="getTComboByPersonId" resultType="com.scmt.healthy.entity.TCombo">
+        select * from t_combo
+        where id =
+        (select combo_id from t_order_group where id = (select group_id from t_group_person where id = #{personId}))
+        and hazard_factors = #{hazardFactors}
+        <if test="content != null and content != ''">
+            and occupational_diseases like concat('%',#{content},'%')
+        </if>
+        <if test="content != null and content != ''">
+            or occupational_taboo like concat('%',#{content},'%')
+        </if>
+    </select>
+    <select id="gethazardFactorsByGroupId" resultType="com.scmt.healthy.entity.TCombo">
+        select hazard_factors,hazard_factors_text from t_combo
+        where FIND_IN_SET(t_combo.id, (select combo_id from t_order_group where id = #{groupId}))
+    </select>
+    <select id="queryTComboAndItemList" resultType="com.scmt.healthy.entity.TCombo">
+        select t_combo.*,GROUP_CONCAT(DISTINCT t2.`name`) AS groupItemNames, SUM(sale_price) AS price
+
+        from t_combo
+        LEFT JOIN t_combo_item t1 ON t1.combo_id = t_combo.id
+        LEFT JOIN t_portfolio_project t2 ON t2.id = t1.portfolio_project_id
+        ${ew.customSqlSegment}
+    </select>
+    <select id="tComboMapper" resultType="com.scmt.healthy.entity.TCombo">
+           select t2.name as item_name ,t2.sale_price as sale_price,t2.office_name as office_name,t2.address,
+           t2.cost_price,t2.*
+        from  t_combo_item t1
+        LEFT JOIN t_portfolio_project t2 ON t2.id = t1.portfolio_project_id where t1.combo_id=#{id}
+    </select>
+
+    <select id="getTComboById" resultType="com.scmt.healthy.entity.TCombo">
+  select t1.name ,t1.fit_sex,t1.id,t1.type,SUM(t3.sale_price) as price,SUM(t3.cost_price) as cost_price_all
+		from  t_combo t1  left join t_combo_item t2 on t1.id=t2.combo_id  left join
+	 t_portfolio_project t3 on t3.id=t2.portfolio_project_id   WHERE t1.id=#{id}
+    </select>
+
+    <select id="getTComboItem" resultType="com.scmt.healthy.entity.TCombo">
+        select t2.id,t2.name,t2.sale_price from t_combo_item t1 left join t_portfolio_project t2 on t1.portfolio_project_id=t2.id where t1.combo_id=#{id}
+    </select>
+
+    <select id="findItemPrice" resultType="java.lang.Integer">
+        select t1.sale_price from  t_portfolio_project t1 where t1.id=#{itemId}
+    </select>
+</mapper>

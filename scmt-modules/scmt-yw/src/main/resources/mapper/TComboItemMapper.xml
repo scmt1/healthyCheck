@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scmt.healthy.mapper.TComboItemMapper">
+
+    <select id="listByComboIds" resultType="com.scmt.healthy.entity.TComboItem">
+        SELECT t_combo_item.*
+        ,t_portfolio_project.name,
+        t_portfolio_project.short_name,
+        t_portfolio_project.order_num,
+        t_portfolio_project.sale_price,
+        t_portfolio_project.suitable_range,
+        t_portfolio_project.introduce,
+        t_portfolio_project.address,
+        t_portfolio_project.remark,
+        t_portfolio_project.is_file,
+        t_portfolio_project.url,
+        t_portfolio_project.department_id,
+        t_portfolio_project.template,
+        t_portfolio_project.service_type,
+        t_portfolio_project.specimen,
+        t_portfolio_project.diagnostic,
+        t_portfolio_project.office_id,
+        t_portfolio_project.office_name
+        FROM t_combo_item
+        LEFT JOIN t_portfolio_project ON t_portfolio_project.id = t_combo_item.portfolio_project_id
+        ${ew.customSqlSegment}
+    </select>
+
+</mapper>

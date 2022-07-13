@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scmt.healthy.mapper.TReviewProjectMapper">
+
+    <select id="queryNoCheckReviewProject" resultType="com.scmt.healthy.entity.TReviewProject">
+        select office_id,name, office_name from t_review_project
+        where
+        person_id = #{personId}
+        and is_pass = 2
+        and del_flag = 0
+        and id not in (select group_item_id from t_depart_result where person_id = #{personId})
+        and id not in (select order_group_item_id from relation_person_project_check where person_id = #{personId} and state = 2)
+    </select>
+
+    <select id="getTGroupPersonReviewer" resultType="com.scmt.healthy.entity.TReviewProject">
+        SELECT t_review_project.id,
+        t_review_project.person_id,
+        t_review_project.person_name,
+        t_review_project.name,
+        t_review_project.short_name,
+        t_review_project.order_num,
+        t_review_project.office_id,
+        t_review_project.office_name,
+        t_review_project.unit_code,
+        t_review_project.unit_name,
+        t_review_project.default_value,
+        t_review_project.result_type,
+        t_review_project.in_conclusion,
+        t_review_project.in_report,
+        t_review_project.relation_code,
+        t_review_project.group_order_id,
+        t_review_project.del_flag,
+        t_review_project.create_id,
+        t_review_project.create_time,
+        t_review_project.portfolio_project_id,
+        t_review_project.group_id,
+        t_review_project.test_num as projectCode,
+        t_review_project.is_pass,
+        t_review_project.address,
+        t_review_project.sale_price,
+        t_review_project.discount,
+        t_review_project.discount_price,
+        t_review_project.project_type,
+        t_review_project.is_file,
+        t_review_project.url,
+        t_review_project.physical_type,
+        t_review_project.service_type,
+        t_review_project.reason,
+        t_review_project.specimen
+             , gp.sex
+             , gp.age
+             , gp.order_id
+             , gp.test_num
+        FROM t_review_project
+                 LEFT JOIN t_group_person gp ON gp.id = t_review_project.person_id
+            ${ew.customSqlSegment}
+    </select>
+
+    <select id="getTGroupPersonReviewerAndDept" resultType="com.scmt.healthy.entity.TReviewProject">
+        SELECT t_review_project.id,
+        t_review_project.person_id,
+        t_review_project.person_name,
+        t_review_project.name,
+        t_review_project.short_name,
+        t_review_project.order_num,
+        t_review_project.office_id,
+        t_review_project.office_name,
+        t_review_project.unit_code,
+        t_review_project.unit_name,
+        t_review_project.default_value,
+        t_review_project.result_type,
+        t_review_project.in_conclusion,
+        t_review_project.in_report,
+        t_review_project.relation_code,
+        t_review_project.group_order_id,
+        t_review_project.del_flag,
+        t_review_project.create_id,
+        t_review_project.create_time,
+        t_review_project.portfolio_project_id,
+        t_review_project.group_id,
+        t_review_project.test_num as projectCode,
+        t_review_project.is_pass,
+        t_review_project.address,
+        t_review_project.sale_price,
+        t_review_project.discount,
+        t_review_project.discount_price,
+        t_review_project.project_type,
+        t_review_project.is_file,
+        t_review_project.url,
+        t_review_project.physical_type,
+        t_review_project.service_type,
+        t_review_project.reason,
+        t_review_project.specimen
+             , gp.sex
+             , gp.age
+             , gp.order_id
+             , gp.test_num
+        FROM t_review_project
+                 LEFT JOIN t_group_person gp ON gp.id = t_review_project.person_id
+            ${ew.customSqlSegment}
+            and EXISTS (SELECT id FROM t_group_person WHERE del_flag = 0 AND id = t_review_project.person_id
+                        <if test="deptName != null and deptName != ''">
+                            and dept = #{deptName}
+                        </if>
+                        <if test="testNum != null and testNum != ''">
+                            and test_num = #{testNum}
+                        </if>)
+        GROUP BY t_review_project.person_id
+    </select>
+
+    <select id="getTGroupPersonReviewerById" resultType="com.scmt.healthy.entity.TGroupPerson">
+        SELECT *
+        FROM t_group_person
+        WHERE id = (SELECT DISTINCT(person_id) FROM t_review_project WHERE id = #{id})
+    </select>
+
+    <select id="queryDataListByPersonId" resultType="com.scmt.healthy.entity.TReviewProject">
+        SELECT t_review_project.*,  relation_person_project_check.state AS status
+        FROM t_review_project
+        LEFT JOIN relation_person_project_check ON order_group_item_id = t_review_project.id and relation_person_project_check.person_id = t_review_project.person_id
+        ${ew.customSqlSegment}
+    </select>
+
+    <select id="queryAbandonTReviewProjectList" resultType="com.scmt.healthy.entity.TReviewProject">
+         SELECT
+            t_review_project.office_id,
+            t_review_project.NAME,
+            t_review_project.office_name,
+            relation_person_project_check.abandon_renson
+        FROM
+            t_review_project
+            LEFT JOIN relation_person_project_check ON relation_person_project_check.order_group_item_id = t_review_project.id and relation_person_project_check.person_id =  #{personId} AND state = 2
+        WHERE
+            t_review_project.group_id = #{groupId}
+            AND t_review_project.del_flag = 0
+            AND t_review_project.id IN ( SELECT order_group_item_id FROM relation_person_project_check WHERE relation_person_project_check.person_id =  #{personId} AND state = 2 )
+    </select>
+
+    <select id="listByWhere" resultType="com.scmt.healthy.entity.TReviewProject">
+        SELECT t_review_project.*
+        ,(SELECT state FROM relation_person_project_check WHERE order_group_item_id = t_review_project.id and person_id = t_review_project.person_id) AS `status`
+        FROM t_review_project
+        WHERE group_id = #{tReviewProject.groupId} AND del_flag = 0 AND person_id = #{tReviewProject.personId}
+        <if test="tReviewProject.officeList != null and tReviewProject.officeList.size > 0">
+            AND office_id IN
+            <foreach collection="tReviewProject.officeList" item="item" open="(" separator="," close=")" index="index">
+                #{item}
+            </foreach>
+        </if>
+        <if test="tReviewProject.isPass != null">
+            AND is_pass = #{tReviewProject.isPass}
+        </if>
+        ORDER BY t_review_project.office_id ASC
+    </select>
+
+    <select id="queryReviewPersonData" resultType="com.scmt.healthy.entity.TGroupPerson">
+        SELECT
+            t_group_person.test_num,
+            t_group_person.person_name,
+            t_group_person.is_recheck,
+            t_group_person.sex,
+            t_group_person.age,
+            t_group_person.id_card,
+            t_group_person.hazard_factors_text,
+            t_group_person.work_type_text,
+            t_group_person.work_name,
+            t_group_person.exposure_work_year,
+            t_group_person.exposure_work_month,
+            t_group_person.work_state_text,
+            t_group_person.regist_date,
+            t_group_person.check_result,
+            t_group_person.physical_type,
+            t_group_person.mobile,
+            t_group_person.review_statu,
+            GROUP_CONCAT(DISTINCT t_review_project.reason) As reason,
+            GROUP_CONCAT(DISTINCT t_depart_result.diagnose_sum) AS diagnose_tip,
+            GROUP_CONCAT(DISTINCT REPLACE(t_review_project.portfolio_project_name,'(复)','')) AS portfolio_project_name
+        FROM  t_review_project
+                  LEFT JOIN t_group_person ON t_review_project.person_id = t_group_person.id
+                  LEFT JOIN t_depart_result ON t_depart_result.person_id = t_group_person.id AND t_depart_result.is_recheck = 1
+        WHERE
+            t_group_person.del_flag = 0
+          AND t_group_person.is_pass >= 2
+          AND t_group_person.order_id = #{orderId}
+        GROUP BY t_review_project.person_id
+    </select>
+
+    <select id="queryAllPersonData" resultType="com.scmt.healthy.entity.TGroupPerson">
+        SELECT
+            t_group_person.test_num,
+            t_group_person.person_name,
+            t_group_person.is_recheck,
+            t_group_person.sex,
+            t_group_person.age,
+            t_group_person.is_pass,
+            t_group_person.id_card,
+            t_group_person.hazard_factors_text,
+            t_group_person.work_type_text,
+            t_group_person.work_name,
+            t_group_person.exposure_work_year,
+            t_group_person.exposure_work_month,
+            t_group_person.work_state_text,
+            t_group_person.check_result,
+            t_group_person.mobile,
+            t_group_person.regist_date,
+            t_group_person.physical_type,
+            t_group_person.review_statu,
+            t_inspection_record.review_result,
+            concat_ws('',t_inspection_record.conclusion,t_inspection_record.other_check_abnormal_results) AS conclusion,
+            concat_ws('',t_inspection_record.handle_opinion,t_inspection_record.career_illness_name) AS handle_opinion
+        FROM t_group_person
+                 LEFT JOIN t_inspection_record ON t_inspection_record.person_id = t_group_person.id
+        WHERE
+            t_group_person.del_flag = 0
+          AND t_group_person.order_id = #{orderId}
+    </select>
+<!--           AND is_pass > 3-->
+<!--           AND check_result is not null-->
+</mapper>

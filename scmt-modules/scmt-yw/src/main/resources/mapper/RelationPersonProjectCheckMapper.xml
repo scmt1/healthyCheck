@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scmt.healthy.mapper.RelationPersonProjectCheckMapper">
+
+    <select id="getNoRegistProjectData" resultType="com.scmt.healthy.entity.TOrderGroupItem">
+        SELECT office_id, id FROM t_order_group_item
+        WHERE group_id = (SELECT group_id FROM t_group_person where id = #{personId})
+          AND not exists (SELECT order_group_item_id FROM relation_person_project_check WHERE (state = 2 OR state = 1) AND person_id = #{personId} AND
+        order_group_item_id =
+        t_order_group_item.id)
+        <if test="departmentIds != null and departmentIds.size() > 0">
+            and t_order_group_item.office_id IN
+            <foreach collection="departmentIds" item="item" open="(" separator="," close=")" index="index">
+                #{item}
+            </foreach>
+        </if>
+        UNION
+        SELECT office_id, id FROM t_review_project
+        WHERE group_id = (SELECT group_id FROM t_group_person where id = #{personId})
+          AND not exists (SELECT order_group_item_id FROM relation_person_project_check WHERE (state = 2 OR state = 1) AND person_id = #{personId} AND
+        order_group_item_id =
+        t_review_project.id)
+        <if test="departmentIds != null and departmentIds.size() > 0">
+            and t_review_project.office_id IN
+            <foreach collection="departmentIds" item="item" open="(" separator="," close=")" index="index">
+                #{item}
+            </foreach>
+        </if>
+    </select>
+</mapper>

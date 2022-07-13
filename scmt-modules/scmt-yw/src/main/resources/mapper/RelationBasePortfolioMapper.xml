@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scmt.healthy.mapper.RelationBasePortfolioMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.scmt.healthy.entity.RelationBasePortfolio">
+        <id column="id" property="id" />
+        <result column="base_project_id" property="baseProjectId" />
+        <result column="portfolio_porject_id" property="portfolioProjectId" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, base_project_id, portfolio_porject_id
+    </sql>
+    <select id="queryBaseProjectIdList" resultType="java.lang.String">
+        SELECT DISTINCT(base_project_id) FROM relation_base_portfolio WHERE portfolio_project_id = #{portfolioId}
+    </select>
+
+</mapper>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scmt.healthy.mapper.TPortfolioProjectMapper">
+
+
+    <select id="getBaseProjectByPortfolioProject" resultType="com.scmt.healthy.entity.TBaseProject">
+        SELECT pp.name,pro.* from t_portfolio_project pp
+            LEFT JOIN relation_base_portfolio bp on pp.id = bp.portfolio_project_id
+            LEFT JOIN t_base_project pro on bp.base_project_id = pro.id
+            WHERE pp.id = #{portfolioProjectId};
+    </select>
+    <select id="selectTSectionOfficeById" resultType="com.scmt.healthy.entity.TPortfolioProject">
+        select * from  t_portfolio_project
+        where id=#{id}
+    </select>
+</mapper>

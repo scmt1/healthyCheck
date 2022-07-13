@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scmt.healthy.mapper.TTemplateMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.scmt.healthy.entity.TTemplate">
+        <id column="id" property="id" />
+        <result column="base_project_id" property="baseProjectId" />
+        <result column="type" property="type" />
+        <result column="report_type" property="reportType" />
+        <result column="status" property="status" />
+        <result column="content" property="content" />
+        <result column="order_num" property="orderNum" />
+        <result column="del_flag" property="delFlag" />
+        <result column="create_id" property="createId" />
+        <result column="create_time" property="createTime" />
+        <result column="update_id" property="updateId" />
+        <result column="update_time" property="updateTime" />
+        <result column="delete_id" property="deleteId" />
+        <result column="delete_time" property="deleteTime" />
+        <result column="content_name" property="contentName" />
+        <association property="tPortfolioProject" javaType="com.scmt.healthy.entity.TPortfolioProject" column="base_project_id" select="com.scmt.healthy.mapper.TPortfolioProjectMapper.selectTSectionOfficeById"></association>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, base_project_id, type,report_type, status, content, order_num, del_flag, create_id, create_time, update_id, update_time, delete_id, delete_time, content_name
+    </sql>
+
+    <!-- 使用MP提供的Wrapper条件构造器-->
+    <select id="selectByMyWrapper" resultMap="BaseResultMap">
+        SELECT
+            t_template.id,
+            t_template.base_project_id,
+            t_template.type,
+            t_template.report_type,
+            t_template.status,
+            t_template.content,
+            t_template.order_num,
+            t_template.create_id,
+            t_template.create_time,
+            t_template.update_id,
+            t_template.update_time,
+            t_template.delete_time,
+            t_template.delete_id,
+            t_template.del_flag,
+            t_template.create_id,
+            t_template.create_time,
+            t_template.content_name
+        FROM
+            t_template
+            ${ew.customSqlSegment}
+    </select>
+    <select id="getDepartResultList" resultType="com.scmt.healthy.entity.TDepartResult">
+        SELECT
+            t_depart_result.*,
+            t_order_group_item.portfolio_project_id as portfolio_project_id,
+            (CASE t_order_group_item.order_num WHEN  t_order_group_item.order_num THEN t_order_group_item.order_num ELSE t_review_project.order_num END) as order_num_project,
+            t_section_office.order_num as order_num_office
+        FROM
+            t_depart_result
+            LEFT JOIN t_order_group_item ON t_order_group_item.id = t_depart_result.group_item_id
+            LEFT JOIN t_review_project ON t_review_project.id = t_depart_result.group_item_id
+            LEFT JOIN t_section_office ON t_section_office.id = t_depart_result.office_id
+        WHERE
+            t_depart_result.person_id = #{personId} and t_depart_result.del_flag = 0
+            and t_depart_result.group_item_id IN (
+            SELECT id FROM t_order_group_item WHERE group_id = #{groupId} AND del_flag = 0
+            union all
+            SELECT id FROM t_review_project WHERE group_id = #{groupId} AND person_id = #{personId} and is_pass = 2 AND del_flag = 0
+            )
+        GROUP BY
+            t_depart_result.group_item_id
+        ORDER BY
+            order_num_office,order_num_project,t_depart_result.create_date ASC
+    </select>
+
+    <select id="getDepartResultListByPersonIds" resultType="com.scmt.healthy.entity.TDepartResult">
+        SELECT
+            t_depart_result.*,
+            t_order_group_item.portfolio_project_id as portfolio_project_id,
+            (CASE t_order_group_item.order_num WHEN  t_order_group_item.order_num THEN t_order_group_item.order_num ELSE t_review_project.order_num END) as order_num_project,
+            t_section_office.order_num as order_num_office
+        FROM
+            t_depart_result
+            LEFT JOIN t_order_group_item ON t_order_group_item.id = t_depart_result.group_item_id
+            LEFT JOIN t_review_project ON t_review_project.id = t_depart_result.group_item_id
+            LEFT JOIN t_section_office ON t_section_office.id = t_depart_result.office_id
+        WHERE t_depart_result.del_flag = 0
+            <if test="personIds != null and personIds.size > 0">
+                and t_depart_result.person_id in
+                <foreach collection="personIds" item="item" separator="," open="(" close=")">
+                    #{item}
+                </foreach>
+                and t_depart_result.group_item_id IN (
+                SELECT id FROM t_order_group_item WHERE group_id in
+                <foreach collection="groupIds" item="item" separator="," open="(" close=")">
+                    #{item}
+                </foreach> AND del_flag = 0
+                union all
+                SELECT id FROM t_review_project WHERE group_id in
+                <foreach collection="groupIds" item="item" separator="," open="(" close=")">
+                    #{item}
+                </foreach> AND person_id in
+                <foreach collection="personIds" item="item" separator="," open="(" close=")">
+                    #{item}
+                </foreach> and is_pass = 2 AND del_flag = 0
+                )
+            </if>
+        group by t_depart_result.person_id,t_depart_result.group_item_id
+        ORDER BY order_num_office,order_num_project,t_depart_result.create_date ASC
+    </select>
+
+    <select id="getDepartItemResultList" resultType="com.scmt.healthy.entity.TDepartItemResult">
+        SELECT
+            t_depart_item_result.*,
+            t_order_group_item_project.short_name,
+            t_order_group_item_project.order_num,
+            t_order_group_item_project.t_order_group_item_id AS group_item_id
+        FROM
+            t_depart_item_result
+            LEFT JOIN t_order_group_item_project ON t_order_group_item_project.id = t_depart_item_result.order_group_item_project_id
+        WHERE
+            t_depart_item_result.person_id = #{personId} and t_depart_item_result.del_flag = 0
+            and t_depart_item_result.order_group_item_id IN (
+            SELECT id FROM t_order_group_item WHERE group_id = #{groupId} AND del_flag = 0
+            union all
+            SELECT id FROM t_review_project WHERE group_id = #{groupId} AND person_id = #{personId} and is_pass = 2 AND del_flag = 0
+            )
+        <!-- order by order_group_item_project_name asc -->
+        order by t_depart_item_result.order_num asc
+    </select>
+
+    <select id="getDepartItemResultListByPersonIds" resultType="com.scmt.healthy.entity.TDepartItemResult">
+        SELECT
+            t_depart_item_result.*,
+            t_order_group_item_project.short_name,
+            t_order_group_item_project.order_num,
+            t_order_group_item_project.t_order_group_item_id AS group_item_id
+        FROM
+            t_depart_item_result
+            LEFT JOIN t_order_group_item_project ON t_order_group_item_project.id = t_depart_item_result.order_group_item_project_id
+        WHERE t_depart_item_result.del_flag = 0
+        <if test="personIds != null and personIds.size > 0">
+            and t_depart_item_result.person_id in
+            <foreach collection="personIds" item="item" separator="," open="(" close=")">
+                #{item}
+            </foreach>
+            and t_depart_item_result.order_group_item_id IN (
+            SELECT id FROM t_order_group_item WHERE group_id in
+            <foreach collection="groupIds" item="item" separator="," open="(" close=")">
+                #{item}
+            </foreach> AND del_flag = 0
+            union all
+            SELECT id FROM t_review_project WHERE group_id in
+            <foreach collection="groupIds" item="item" separator="," open="(" close=")">
+                #{item}
+            </foreach> AND person_id in
+            <foreach collection="personIds" item="item" separator="," open="(" close=")">
+                #{item}
+            </foreach> and is_pass = 2 AND del_flag = 0
+            )
+        </if>
+        <!-- order by order_group_item_project_name asc -->
+        order by t_depart_item_result.order_num,order_group_item_project_name asc
+    </select>
+
+</mapper>

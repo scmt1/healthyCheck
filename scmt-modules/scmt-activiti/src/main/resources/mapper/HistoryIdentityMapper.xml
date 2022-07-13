@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scmt.activiti.dao.mapper.HistoryIdentityMapper">
+
+    <insert id="insert">
+      INSERT INTO ACT_HI_IDENTITYLINK (ID_, TYPE_, USER_ID_, TASK_ID_, PROC_INST_ID_)
+      VALUES (#{id}, #{type}, #{userId}, #{taskId}, #{procInstId})
+    </insert>
+
+    <select id="findUserIdByTypeAndTaskId" resultType="java.lang.String">
+      SELECT ahi.USER_ID_ FROM ACT_HI_IDENTITYLINK ahi
+      WHERE TYPE_ = #{type} AND TASK_ID_ = #{taskId}
+      LIMIT 1
+    </select>
+</mapper>

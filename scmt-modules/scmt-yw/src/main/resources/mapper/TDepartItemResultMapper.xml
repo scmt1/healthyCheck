@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scmt.healthy.mapper.TDepartItemResultMapper">
+
+    <select id="queryAllTDepartItemResultList" resultType="com.scmt.healthy.entity.TDepartItemResult">
+        SELECT * FROM t_depart_item_result
+        where person_id = #{personId}
+        <if test="officeId != null and officeId != ''">
+            and office_id = #{officeId}
+        </if>
+        <if test="checkDate != null and checkDate != ''">
+            and create_date like concat(#{checkDate},'%')
+        </if>
+        <if test="departResultId != null and departResultId != ''">
+            and depart_result_id = #{departResultId}
+        </if>
+    </select>
+
+    <select id="querySummaryResultList" resultType="com.scmt.healthy.entity.TDepartItemResult">
+        select r.*,p.is_pass as isPass,p.person_name as personName,p.mobile,p.test_num as testNum from t_depart_item_result r
+        LEFT JOIN t_group_person p on p.id = r.person_id
+        ${ew.customSqlSegment}
+    </select>
+
+    <select id="queryAllAbnormalItemResultList" resultType="com.scmt.healthy.entity.TDepartItemResult">
+        SELECT r.* FROM t_depart_item_result r
+        ${ew.customSqlSegment}
+    </select>
+
+    <select id="getAbnormalResultList" resultType="com.scmt.healthy.entity.TDepartItemResult">
+        SELECT * FROM t_depart_item_result
+        where (arrow != '-' or result = '阳性') and person_id = #{personId}
+    </select>
+
+    <select id="getAllListByPersonId" resultType="com.scmt.healthy.entity.TDepartItemResult">
+        SELECT * FROM t_depart_item_result
+        where person_id = #{personId}
+    </select>
+</mapper>

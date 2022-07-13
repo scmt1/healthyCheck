@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scmt.healthy.mapper.TOfficeTermMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.scmt.healthy.entity.TOfficeTerm">
+        <id column="id" property="id" />
+        <result column="office_id" property="officeId" />
+        <result column="type" property="type" />
+        <result column="status" property="status" />
+        <result column="content" property="content" />
+        <result column="order_num" property="orderNum" />
+        <result column="work_state_code" property="workStateCode" />
+        <result column="work_state_text" property="workStateText" />
+        <result column="del_flag" property="delFlag" />
+        <result column="create_id" property="createId" />
+        <result column="create_time" property="createTime" />
+        <result column="update_id" property="updateId" />
+        <result column="update_time" property="updateTime" />
+        <result column="delete_id" property="deleteId" />
+        <result column="delete_time" property="deleteTime" />
+        <association property="officeData" javaType="com.scmt.healthy.entity.TSectionOffice" column="office_id" select="com.scmt.healthy.mapper.TSectionOfficeMapper.selectById"></association>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, office_id, type, status, content, order_num, work_state_code, work_state_text, del_flag, create_id, create_time, update_id, update_time, delete_id, delete_time
+    </sql>
+
+    <select id="selectTOfficeTermPageList"  resultMap="BaseResultMap">
+        SELECT t_office_term.*,
+        t1.title AS typeName
+        FROM t_office_term
+        LEFT JOIN t_dict_data t1 ON t_office_term.type = t1.VALUE AND t1.dict_id = 1452626687144628224
+        <where>
+            <if test="searchVo != null">
+                <if test="searchVo.getStartDate()!=null and searchVo.getEndDate()!=null">
+                    AND t_office_term.create_time BETWEEN #{searchVo.startDate} and #{searchVo.endDate}
+                </if>
+            </if>
+            <if test="tOfficeTerm != null">
+                <if test="tOfficeTerm.getContent() != null">
+                    AND t_office_term.content like CONCAT('%',#{tOfficeTerm.content,jdbcType=VARCHAR},'%')
+                </if>
+                <if test="tOfficeTerm.getOfficeId() != null and tOfficeTerm.getOfficeId() != ''">
+                    AND t_office_term.office_id = #{tOfficeTerm.officeId,jdbcType=VARCHAR}
+                </if>
+                <if test="tOfficeTerm.getType() != null and tOfficeTerm.getType() != ''">
+                    AND t_office_term.type like CONCAT('%',#{tOfficeTerm.type,jdbcType=VARCHAR},'%')
+                </if>
+                <if test="tOfficeTerm.getInspectType() != null and tOfficeTerm.getInspectType() != ''">
+                    AND t_office_term.inspect_type like CONCAT('%',#{tOfficeTerm.inspectType,jdbcType=VARCHAR},'%')
+                </if>
+                <if test="tOfficeTerm.getHazardFactors() != null and tOfficeTerm.getHazardFactors() != ''">
+                    AND t_office_term.hazard_factors like CONCAT('%',#{tOfficeTerm.hazardFactors,jdbcType=VARCHAR},'%')
+                </if>
+                <if test="tOfficeTerm.getWorkStateText() != null and tOfficeTerm.getWorkStateText() != ''">
+                    AND t_office_term.work_state_text like CONCAT('%',#{tOfficeTerm.workStateText,jdbcType=VARCHAR},'%')
+                </if>
+            </if>
+                and t_office_term.del_flag = 0
+        </where>
+    </select>
+</mapper>

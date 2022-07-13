@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scmt.core.dao.mapper.DeleteMapper">
+
+    <delete id="deleteSocial" parameterType="java.lang.String">
+        DELETE FROM t_social WHERE relate_username = #{username};
+    </delete>
+
+    <delete id="deleteActNode" parameterType="java.lang.String">
+        DELETE FROM t_act_node WHERE relate_id = #{relateId};
+    </delete>
+
+    <delete id="deleteActStarter" parameterType="java.lang.String">
+        DELETE FROM t_act_starter WHERE user_id = #{userId};
+    </delete>
+</mapper>

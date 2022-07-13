@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scmt.healthy.mapper.TDepartResultMapper">
+    <select id="queryTDepartResultListAndOfficeName" resultType="com.scmt.healthy.entity.TDepartResult">
+        select r.*,s.section_name
+        from t_depart_result r
+        LEFT JOIN t_order_group_item g on g.id = r.group_item_id
+        LEFT JOIN t_section_office s on s.id = g.office_id
+        ${ew.customSqlSegment} and g.del_flag = '0' and s.del_flag = '0'
+    </select>
+
+    <select id="queryTDepartResultAndProjectId" resultType="com.scmt.healthy.entity.TDepartResult">
+        SELECT
+            t_depart_result.*,
+            t_order_group_item.portfolio_project_id as portfolio_project_id
+        FROM
+            t_depart_result
+        LEFT JOIN t_order_group_item ON t_order_group_item.id = t_depart_result.group_item_id
+        ${ew.customSqlSegment}
+        GROUP BY t_depart_result.group_item_id
+    </select>
+
+    <select id="queryTDepartResultList" resultType="com.scmt.healthy.entity.TDepartResult">
+        SELECT
+            t_depart_result.*
+        FROM
+            t_depart_result
+        where t_depart_result.person_id = #{personId} and t_depart_result.del_flag = 0
+            and t_depart_result.group_item_id IN (
+            SELECT id FROM t_order_group_item WHERE group_id = #{groupId} AND del_flag = 0
+            union all
+            SELECT id FROM t_review_project WHERE group_id = #{groupId} AND person_id = #{personId} and is_pass = 2 AND del_flag = 0
+            )
+        GROUP BY t_depart_result.group_item_id
+        order by check_date asc
+    </select>
+
+    <select id="queryPersonCheckOffice" resultType="com.scmt.healthy.entity.TDepartResult">
+        select r.office_id,r.office_name
+        from t_depart_result r
+        where r.person_id = #{personId}
+        and r.del_flag = '0' group by office_id order by r.office_id desc
+    </select>
+
+    <select id="isCheckComplete" resultType="integer">
+        SELECT (SELECT count(0) FROM t_order_group_item WHERE group_id = #{groupId} and office_id  = #{officeId} and del_flag = 0) >(SELECT count(0) FROM t_depart_result WHERE person_id = #{personId} and office_id = #{officeId} and del_flag = 0) as result
+    </select>
+
+    <select id="queryTDepartResultByPersonId" resultType="java.lang.Integer">
+        select count(1) from t_depart_result
+        where person_id = #{personId}
+        <if test="groupItemIdList != null and groupItemIdList.size > 0">
+            and group_item_id in
+            <foreach collection="groupItemIdList" item="item" separator=","  open="(" close=")">
+                #{item}
+            </foreach>
+        </if>
+    </select>
+</mapper>

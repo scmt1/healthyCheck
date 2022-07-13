@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scmt.healthy.mapper.TLisDataMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.scmt.healthy.entity.TLisData">
+        <id column="id" property="id" />
+        <result column="code" property="code" />
+        <result column="data" property="data" />
+        <result column="time" property="time" />
+        <result column="item" property="item" />
+        <result column="person_name" property="personName" />
+        <result column="equipment_manufacturer_model" property="equipmentManufacturerModel" />
+        <result column="type" property="type" />
+        <result column="status" property="status" />
+        <result column="remark" property="remark" />
+        <result column="del_flag" property="delFlag" />
+        <result column="create_id" property="createId" />
+        <result column="create_time" property="createTime" />
+        <result column="update_id" property="updateId" />
+        <result column="update_time" property="updateTime" />
+        <result column="delete_id" property="deleteId" />
+        <result column="delete_time" property="deleteTime" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, code, data, time, equipment_manufacturer_model, type, status, remark, del_flag, create_id, create_time, update_id, update_time, delete_id, delete_time
+    </sql>
+
+</mapper>

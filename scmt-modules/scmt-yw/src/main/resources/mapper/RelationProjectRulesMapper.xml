@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scmt.healthy.mapper.RelationProjectRulesMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.scmt.healthy.entity.RelationProjectRules">
+        <id column="id" property="id" />
+        <result column="name" property="name" />
+        <result column="short_name" property="shortName" />
+        <result column="type" property="type" />
+        <result column="interval_value" property="intervalValue" />
+        <result column="allow_sex" property="allowSex" />
+        <result column="min_age" property="minAge" />
+        <result column="max_age" property="maxAge" />
+        <result column="in_conclusion" property="inConclusion" />
+        <result column="positive" property="positive" />
+        <result column="career_advice" property="careerAdvice" />
+        <result column="health_advice" property="healthAdvice" />
+        <result column="dietary_guidance" property="dietaryGuidance" />
+        <result column="sports_guidance" property="sportsGuidance" />
+        <result column="health_knowledge" property="healthKnowledge" />
+        <result column="reminder" property="reminder" />
+        <result column="department_id" property="departmentId" />
+        <result column="base_project_id" property="baseProjectId" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, name, short_name, type, interval_value, allow_sex, min_age, max_age, in_conclusion, positive, career_advice, health_advice, dietary_guidance, sports_guidance, health_knowledge, reminder, department_id, base_project_id
+    </sql>
+
+</mapper>

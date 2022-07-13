@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scmt.healthy.mapper.TSymptomMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.scmt.healthy.entity.TSymptom">
+        <id column="id" property="id" />
+        <result column="type" property="type" />
+        <result column="project_name" property="projectName" />
+        <result column="degree" property="degree" />
+        <result column="course_time" property="courseTime" />
+        <result column="person_id" property="personId" />
+        <result column="create_id" property="createId" />
+        <result column="create_time" property="createTime" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, type, project_name, degree, course_time, person_id, create_id, create_time
+    </sql>
+
+</mapper>

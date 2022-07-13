@@ -1,0 +1,458 @@
+# 配置文件加密key 生产环境中可通过环境变量、命令行等形式进行设置
+jasypt:
+  encryptor:
+    password: scmt
+
+server:
+  port: 8888
+  servlet:
+    context-path: /
+  tomcat:
+    uri-encoding: UTF-8
+    threads:
+      max: 1000
+      min-spare: 30
+  # 优雅停机 关闭容器后默认等待30秒继续执行没处理完的任务 避免数据不一致
+  shutdown: graceful
+  ssl:
+    key-store: classpath:tomcat.keystore
+    key-password: 123456
+    key-alias: tomcat
+    key-store-type: JKS
+
+# Mybatis-plus
+mybatis-plus:
+  mapper-locations: classpath*:mapper/*.xml
+  global-config:
+    db-config:
+      #      logic-delete-field: delFlag  # 全局逻辑删除的实体字段名(since 3.3.0,配置后可以忽略不配置步骤2)
+      logic-delete-value: 1 # 逻辑已删除值(默认为 1)
+      logic-not-delete-value: 0 # 逻辑未删除值(默认为 0)
+  configuration:
+    cache-enabled: false
+#     日志控制台打印
+#    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+#配置web页面入口
+magic-api:
+  cluster-config:
+    enable: true # 开启集群配置
+  web: /magic/web
+  #配置文件存储位置。当以classpath开头时，为只读模式
+  resource:
+    type: database # 配置存储在数据库中
+    tableName: magic_api_file # 数据库中的表名
+    readonly: false # 是否是只读模式
+  support-cross-domain: true
+  swagger-config:
+    # 资源名称
+    name: 共享服务平台API
+    # 资源描述
+    description: 共享服务平台API v1.0 接口文档
+    #    # 资源位置
+    location: /v2/api-docs/interface/swagger2.json
+    # 文档版本
+    version: 1.0
+    # 文档标题
+    title:  共享服务平台API v1.0 接口文档
+    license:
+      name: xxx
+      url: xxx
+    host: /
+    concat:
+      name: ycy
+      url: localhost:8877/doc.html
+      email: xxxx@qq.com
+    tag:
+      name: xx
+
+spring:
+  lifecycle:
+    # 配置优雅停机后的缓冲器 最大等待时间
+    timeout-per-shutdown-phase: 10S
+  # 数据源
+  #自动装载数据库
+  autoconfigure:
+    exclude: com.alibaba.druid.spring.boot.autoconfigure.DruidDataSourceAutoConfigure
+  datasource:
+#    url: jdbc:mysql://172.1.4.66:3306/healthy?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=GMT%2B8
+#    username: develop
+#    password: 123456
+#    type: com.alibaba.druid.pool.DruidDataSource
+#    driverClassName: com.mysql.jdbc.Driver
+    dynamic:
+      primary: master
+      strict: false
+      datasource:
+        #基础数据
+        master:
+          url: jdbc:mysql://192.168.1.147:3306/healthy?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=GMT%2B8&allowPublicKeyRetrieval=true
+#          url: jdbc:mysql://127.0.0.1:3306/healthy?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=GMT%2B8&allowPublicKeyRetrieval=true
+          driver-class-name: com.mysql.cj.jdbc.Driver
+          username: develop
+          password: 123456
+        #网报数据
+        sub:
+          url: jdbc:mysql://192.168.1.147:3306/stjt_health_exam?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=GMT%2B8&allowPublicKeyRetrieval=true
+#          url: jdbc:mysql://127.0.0.1:3306/stjt_health_exam?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=GMT%2B8&allowPublicKeyRetrieval=true
+          driver-class-name: com.mysql.cj.jdbc.Driver
+          username: develop
+          password: 123456
+    # Druid StatViewServlet配置
+    druid:
+      stat-view-servlet:
+        # 默认true 内置监控页面首页/druid/index.html
+        enabled: true
+        url-pattern: /druid/*
+        # 允许清空统计数据
+        reset-enable: true
+        login-username: develop
+        login-password: 123456
+        # IP白名单 多个逗号分隔
+        allow:
+        # IP黑名单
+        deny:
+      filter:
+        stat:
+          # 开启监控sql
+          enabled: true
+          # 显示并标注慢sql 默认当超过3秒显示
+          log-slow-sql: true
+          slow-sql-millis: 3000
+          merge-sql: true
+        # 防SQL注入过滤
+        wall:
+          config:
+            # 允许多条sql同时执行
+            multi-statement-allow: true
+      #初始化连接
+      initial-size: 10
+      #最大连接数量
+      max-active: 100
+      #是否自动回收超时连接
+      remove-abandoned: true
+      #超时时间(以秒数为单位)
+      remove-abandoned-timeout: 180
+      #检测数据库的查询语句
+      validation-query: SELECT 1
+      #每隔五分钟检测空闲超过10分钟的连接
+      min-evictable-idle-time-millis: 600000
+      #空闲连接回收的时间间隔，与test-while-idle一起使用，设置5分钟
+      time-between-eviction-runs-millis: 300000
+      #验证连接的有效性
+      test-while-idle: true
+      #获取连接时候验证，会影响性能
+      #test-on-borrow: false
+      #是否在自动回收超时连接的时候打印连接的超时错误
+      log-abandoned: false
+  jpa:
+    # 显示sql
+    show-sql: false
+    # 自动生成表结构
+    hibernate:
+      ddl-auto: update
+  # Redis
+  redis:
+    host: 127.0.0.1
+    # 数据库索引 默认0
+    database: 5
+    port: 6379
+    # 超时时间 Duration类型 3秒
+    timeout: 3S
+  # Elasticsearch
+  data:
+    elasticsearch:
+      # 暂未使用ES 关闭其持久化存储
+      repositories:
+        enabled: false
+  elasticsearch:
+    rest:
+      # 要连接的ES客户端Rest Uri 多个逗号分隔
+      uris: http://127.0.0.1:9200
+  # 定时任务
+  quartz:
+    # 任务信息存储至数据库
+    job-store-type: jdbc
+    jdbc:
+      # 自动生成表
+      initialize-schema: always
+  # 工作流
+  activiti:
+    check-process-definitions: false
+    db-identity-used: true
+    # 自动生成Activiti相关表 第一次生成后建议关闭提高运行速度
+    database-schema-update: false
+    history-level: full
+    # 扩展配置
+    scmt:
+      # 流程图字体 默认宋体
+      activityFontName: Microsoft YaHei
+      labelFontName: Microsoft YaHei
+  # 文件大小上传配置
+  servlet:
+    multipart:
+      max-file-size: 2000MB
+      max-request-size: 2000MB
+  jackson:
+    time-zone: GMT+8
+    serialization:
+      fail-on-empty-beans: false
+  boot:
+    admin:
+      # 修改上下文路径
+      context-path: /scmt/admin
+      client:
+        url: https://127.0.0.1:${server.port}/scmt/admin
+  resources:
+    cache:
+      cachecontrol:
+        # 静态资源缓存30天
+        max-age: 30D
+
+scmt:
+  # 全局限流
+  ratelimit:
+    # 开启
+    enable: false
+    # 每1秒内
+    timeout: 1000
+    # 总限制200个请求
+    limit: 200
+  # IP限流
+  iplimit:
+    # 开启
+    enable: true
+    # 每1秒内
+    timeout: 1000
+    # 每个ip限制30个请求
+    limit: 30
+  # 后台token交互方式
+  token:
+    # 默认为true，token将存入redis，并具有单点登录功能 设为false使用JWT交互
+    redis: false
+    # 是否开启单设备登陆 仅当token交互方式为redis时生效
+    sdl: true
+    # token中存储用户权限数据 设为true开启后可避免每次请求再获取用户权限，但有可能导致编辑权限菜单后无法读取到最新权限数据（需用户重新登录）
+    storePerms: true
+    # token过期时间 redis模式有请求自动刷新（分钟）
+    tokenExpireTime: 60
+    # 用户选择 保存登录状态/记住我 对应token过期时间（天）
+    saveLoginTime: 7
+    # 限制用户登陆错误次数（次）
+    loginTimeLimit: 5
+    # 错误超过次数后多少分钟后才能继续登录（分钟）
+    loginAfterTime: 5
+  # app应用 token交互配置
+  appToken:
+    # 是否开启同一平台单设备登陆（如安卓设备只允许登录一个相同账号，同时IOS设备可允许一个设备登陆）
+    spl: true
+    # token过期时间 有请求自动刷新（天）
+    tokenExpireTime: 30
+  # 使用Spring @Cacheable注解失效时间
+  cache:
+    # 缓存过期时间 Duration类型 D–天 H小时 M–分钟 S–秒 永久不过期设为非正值
+    timeToLive: 15D
+  # 日志记录方式 true使用Elasticsearch记录 false记录至数据库中
+  logRecord:
+    es: false
+  # 腾讯位置服务key配置 腾讯位置服务官网注册添加key
+  qqlbs:
+    key: 你的腾讯位置服务key
+  # 第三方社交登录配置
+  social:
+    # 前端回调登录地址
+    callbackFeUrl: http://127.0.0.1:9999/login
+    # 前端绑定账号回调地址
+    callbackFeRelateUrl: http://127.0.0.1:9999/relate
+    # github
+    github:
+      clientId: 你的clientId
+      clientSecret: 你的clientSecret
+      callbackUrl: http://127.0.0.1:8888/scmt/social/github/callback
+    # qq
+    qq:
+      appId: 你的appId
+      appKey: 你的appKey
+      callbackUrl: http://127.0.0.1:8888/scmt/social/qq/callback
+    # weibo
+    weibo:
+      appKey: 你的appKey
+      appSecret: 你的appSecret
+      callbackUrl: http://127.0.0.1:8888/scmt/social/weibo/callback
+    # wechat
+    wechat:
+      appId: 你的appId
+      appSecret: 你的appSecret
+      callbackUrl: http://127.0.0.1:8888/scmt/social/wechat/callback
+    # 钉钉
+    dingding:
+      # 扫码登录应用
+      appId: 你的appId
+      appSecret: 你的appSecret
+      callbackUrl: http://127.0.0.1:8888/scmt/social/dingding/callback
+    # 企业微信
+    workwechat:
+      appId: 你的appId 企业的CorpID
+      agentId: 你的应用ID
+      appSecret: 你的应用Secret
+      callbackUrl: http://127.0.0.1:8888/scmt/social/workwechat/callback
+
+# 需要验证码校验的接口路径 支持通配符 自动过滤拦截校验 无需开发人员再次校验
+captcha:
+  # 图片验证码验证
+  image:
+    - /scmt/login # 登录接口
+    - /scmt/oauth2/authorize # 认证接口
+  # 短信验证码验证
+  sms:
+    - /scmt/user/regist # 注册接口
+    - /scmt/user/smsLogin # 短信登录接口
+    - /scmt/user/resetByMobile # 手机重置密码
+    - /scmt/user/changeMobile # 更换绑定手机
+    - /scmt/app/v1/member/quickLogin # 会员快捷登录注册接口
+  # Vaptcha验证码验证
+  vaptcha:
+    - /scmt/common/captcha/sendRegistSms/** # 发送注册短信
+    - /scmt/common/captcha/sendResetSms/** # 发送重置密码短信
+    - /scmt/email/sendResetCode/** # 发送重置密码邮件
+    - /scmt/social/relate # 绑定第三方账号
+  # Email验证码验证
+  email:
+    - /scmt/email/resetByEmail # 邮件重置密码
+    - /scmt/email/editEmail # 修改绑定邮箱
+
+# 忽略url
+ignored:
+  # 无需登录认证的请求
+  urls:
+    - /
+    - /scmt/AppMain/**
+    - /scmt/tDepartItemResult/dataHandTcErrorData
+    - /doc.html
+    - /v2/api-docs/interface/swagger2.json
+    - /magic/web/**
+    - /interface/**/**
+    - /scmt/app/v1/**
+    - /scmt/oauth2/**
+    - /scmt/actuator/**
+    - /scmt/admin/**
+    - /editor-app/**
+    - /scmt/act/**
+    - /scmt/dictData/getByType/**
+    - /scmt/email/sendResetCode/**
+    - /scmt/email/resetByEmail
+    - /scmt/file/view/**
+    - /scmt/social/**
+    - /scmt/ws/**
+    - /scmt/setting/notice
+    - /scmt/user/regist
+    - /scmt/user/appRegist
+    - /scmt/user/appLogin
+    - /scmt/user/appEdit
+    - /scmt/user/appModifyPass
+    - /scmt/user/sendMsm
+    - /scmt/tGroupPersonApp/**
+    - /scmt/tGroupPerson/queryTGroupPersonAndResultList
+    - /scmt/tGroupPerson/queryTGroupPersonAppList
+    - /scmt/tGroupPerson/queryTGroupPersonApp
+    - /scmt/tGroupPerson/getTInspectRecordAndGroupItemResult
+    - /scmt/tGroupPerson/getTInspectRecordAndDepartItemResult
+    - /scmt/tGroupPerson/getDepartResultAndItemResult
+    - /scmt/tGroupOrder/addTGroupOrderApp
+    - /scmt/tGroupOrder/getGroupOrderApp
+    - /scmt/tOrderGroup/queryTOrderGroupList
+    - /scmt/tGroupPerson/queryTGroupPersonList
+    - /scmt/tCombo/queryTComboAndItemList
+    - /scmt/user/smsLogin
+    - /scmt/user/resetByMobile
+    - /scmt/tGroupOrder/queryTGroupOrderAppList
+    - /scmt/tCombo/**
+    - /scmt/common/**
+    - /druid/**
+    - /swagger-ui.html
+    - /swagger-resources/**
+    - /swagger/**
+    - /**/v2/api-docs
+    - /**/*.js
+    - /**/*.css
+    - /**/*.png
+    - /**/*.ico
+    - /scmt/test/**
+  # 限流及黑名单不拦截的路径
+  limitUrls:
+    - /**/*.js
+    - /**/*.css
+    - /**/*.png
+    - /**/*.ico
+
+# Actuator
+management:
+  health:
+    # 暂未用到ES 关闭其健康检查
+    elasticsearch:
+      enabled: false
+  endpoint:
+    health:
+      show-details: always
+      status:
+        http-mapping:
+          DOWN: 200
+          OUT_OF_SERVICE: 200
+          FATAL: 200
+          UNKNOWN: 200
+  endpoints:
+    web:
+      base-path: /scmt/actuator/
+      exposure:
+        include: '*'
+
+# Swagger界面内容配置
+swagger:
+  title: scmt API接口文档
+  description: scmt Api Documentation
+  version: 1.0.0
+  termsOfServiceUrl:
+  contact:
+    name: scmt
+    url: www.scmt.com
+    email: 1011931233@qq.com
+
+
+
+# 日志
+logging:
+  # 输出级别
+  level:
+    root: info
+    com: debug
+  file:
+    # 指定路径
+    path: scmt-logs
+    # 最大保存天数
+    max-history: 15
+    # 每个文件最大大小
+    max-size: 5MB
+
+#证书配置
+license:
+  subject: dataCenter
+  publicAlias: publicCert
+  storePass: public_password1234
+  licensePath: /storeFile/dataCenter/license.lic
+  publicKeysStorePath: /storeFile/dataCenter/publicCerts.keystore
+
+skconfig:
+  # 作为server 端的Ip
+  lisServerIp: 192.168.1.147
+  # 作为server 端的port
+  lisServerPort: 60001
+  #主治医生
+  attendingPhysician: '1501460125288894464'
+  #体检中心主任
+  physicalDirector: '1501460349784821760'
+  #技术负责人
+  technicalDirector: '1530129299582095360'
+  #lis码是否统一
+  lisCode: false
+  #是否定时更新问诊签名
+  isAutograph: true

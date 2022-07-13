@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scmt.healthy.mapper.TPastMedicalHistoryMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.scmt.healthy.entity.TPastMedicalHistory">
+        <id column="id" property="id" />
+        <result column="disease_name" property="diseaseName" />
+        <result column="disease_date" property="diseaseDate" />
+        <result column="diagnostic_unit" property="diagnosticUnit" />
+        <result column="after_treatment" property="afterTreatment" />
+        <result column="fate" property="fate" />
+        <result column="person_id" property="personId" />
+        <result column="create_id" property="createId" />
+        <result column="create_time" property="createTime" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, disease_name, disease_date, diagnostic_unit, after_treatment, fate, person_id, create_id, create_time
+    </sql>
+
+</mapper>

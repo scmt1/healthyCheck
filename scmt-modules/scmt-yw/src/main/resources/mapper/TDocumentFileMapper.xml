@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scmt.healthy.mapper.TDocumentFileMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.scmt.healthy.entity.TDocumentFile">
+        <id column="id" property="id" />
+        <result column="foreign_key" property="foreignKey" />
+        <result column="name" property="name" />
+        <result column="size" property="size" />
+        <result column="type" property="type" />
+        <result column="url" property="url" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, foreign_key, name, size, type, url
+    </sql>
+
+</mapper>

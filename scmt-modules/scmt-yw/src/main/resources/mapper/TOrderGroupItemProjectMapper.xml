@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scmt.healthy.mapper.TOrderGroupItemProjectMapper">
+
+    <select id="queryNoCheckTOrderGroupItemProjectList" resultType="com.scmt.healthy.entity.TOrderGroupItem">
+        select office_id, name, office_name from t_order_group_item
+        where group_id = #{groupId} AND del_flag = 0
+        and id not in (select group_item_id from t_depart_result where person_id = #{personId} AND del_flag = 0)
+        and id not in (select order_group_item_id from relation_person_project_check where person_id = #{personId} and state = 2)
+    </select>
+
+
+    <select id="getOrderGroupITemProjectByReview" resultType="com.scmt.healthy.entity.TOrderGroupItemProject">
+        SELECT * FROM `t_order_group_item_project` WHERE t_order_group_item_id = (SELECT id FROM t_order_group_item WHERE portfolio_project_id = #{portfolioId} AND
+        group_id = #{groupId} UNION ALL SELECT id FROM t_review_project WHERE portfolio_project_id = #{portfolioId} AND
+        group_id = #{groupId}  limit 1) AND del_flag = 0
+        <if test="officeId != null and officeId.size > 0">
+            And office_id IN
+            <foreach collection="officeId" item="item" open="(" separator="," close=")" index="index">
+                #{item}
+            </foreach>
+        </if>
+        group by t_order_group_item_project.base_project_id
+        order by t_order_group_item_project.order_num asc
+    </select>
+
+    <select id="queryAbandonTOrderGroupItemProjectList" resultType="com.scmt.healthy.entity.TOrderGroupItem">
+        SELECT
+            t_order_group_item.office_id,
+            t_order_group_item.NAME,
+            t_order_group_item.office_name,
+            relation_person_project_check.abandon_renson
+        FROM
+            t_order_group_item
+            LEFT JOIN relation_person_project_check ON relation_person_project_check.order_group_item_id = t_order_group_item.id and person_id =  #{personId} AND state = 2
+        WHERE
+            t_order_group_item.group_id = #{groupId}
+            AND t_order_group_item.del_flag = 0
+            AND t_order_group_item.id IN ( SELECT order_group_item_id FROM relation_person_project_check WHERE person_id =  #{personId} AND state = 2 )
+    </select>
+
+</mapper>

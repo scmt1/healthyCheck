@@ -1,0 +1,378 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scmt.healthy.mapper.TGroupPersonMapper">
+
+    <select id="getTGroupPersonInspection" resultType="com.scmt.healthy.entity.TGroupPerson">
+        SELECT id,person_name,is_pass,print_state,sex,id_card,birth,age,jc_type,physical_type,sporadic_physical
+        FROM t_group_person ${ew.customSqlSegment}
+    </select>
+
+    <select id="getExamineFinishPersonData" resultType="com.scmt.healthy.entity.TGroupPerson">
+        SELECT t_group_person.*, t1.health_certificate_conditions as isQualified
+        FROM t_group_person
+                 left join t_inspection_record t1 on t_group_person.id = t1.person_id
+            ${ew.customSqlSegment}
+    </select>
+
+    <select id="getPersonByOfficeId" resultType="com.scmt.healthy.entity.TGroupPerson">
+        SELECT id,person_name,is_pass,sex,id_card,birth,age,jc_type,physical_type,sporadic_physical from t_group_person ${ew.customSqlSegment}
+        <if test="list != null and list != ''">
+            and EXISTS (SELECT group_id from t_order_group_item where office_id IN
+            <foreach collection="list" item="item" open="(" separator="," close=")" index="index">
+                #{item}
+            </foreach>
+            and t_group_person.group_id = group_id)
+        </if>
+
+        <if test="isCheck == 1">
+            AND (SELECT COUNT(1) FROM t_depart_result WHERE person_id = t_group_person.id
+            <if test="list != null and list != ''">
+                AND office_id IN
+                <foreach collection="list" item="item" open="(" separator="," close=")" index="index">
+                    #{item}
+                </foreach>
+            </if>
+            and group_item_id IN (
+            SELECT id FROM t_order_group_item WHERE group_id =t_group_person.group_id AND del_flag = 0
+            union all
+            SELECT id FROM t_review_project WHERE group_id =t_group_person.group_id AND person_id = t_group_person.id AND del_flag = 0
+            ) and del_flag = 0)
+            &gt;=
+            ((SELECT sumCount(#{officeIds}, t_group_person.group_id, t_group_person.id) as a) - (select count(id) FROM t_review_project WHERE group_id =t_group_person.group_id AND person_id = t_group_person.id AND is_pass != 2 AND del_flag = 0) - (select count(id) FROM relation_person_project_check WHERE relation_person_project_check.person_id = t_group_person.id AND state = 2))
+        </if>
+        <if test="isCheck == 0">
+            AND (SELECT COUNT(1) FROM t_depart_result WHERE person_id = t_group_person.id
+            <if test="list != null and list != ''">
+                AND office_id IN
+                <foreach collection="list" item="item" open="(" separator="," close=")" index="index">
+                    #{item}
+                </foreach>
+            </if>
+            and group_item_id IN (
+            SELECT id FROM t_order_group_item WHERE group_id =t_group_person.group_id AND del_flag = 0
+            union all
+            SELECT id FROM t_review_project WHERE group_id =t_group_person.group_id AND person_id = t_group_person.id AND del_flag = 0
+            ) and del_flag = 0)
+            &lt;
+            ((SELECT sumCount(#{officeIds}, t_group_person.group_id, t_group_person.id) as a) - (select count(id) FROM t_review_project WHERE group_id =t_group_person.group_id AND person_id = t_group_person.id AND is_pass != 2 AND del_flag = 0) - (select count(id) FROM relation_person_project_check WHERE relation_person_project_check.person_id = t_group_person.id AND state = 2))
+        </if>
+        order by t_group_person.sporadic_physical desc, t_group_person.regist_date asc
+    </select>
+
+    <select id="getGroupPersonByIdWithLink" resultType="map">
+        SELECT p.*,
+               o.order_code,
+               u.name
+        FROM t_group_person p
+                 LEFT JOIN t_group_order o on p.group_id = o.id and o.del_flag = 0
+                 LEFT JOIN t_group_unit u on p.unit_id = u.id and u.del_flag = 0
+        where p.del_flag = 0
+          and is_pass = 2
+          and p.id = #{id}
+    </select>
+
+    <select id="getTGroupPersonByOrderId" resultType="com.scmt.healthy.entity.TGroupPerson">
+        SELECT *
+        FROM t_group_person
+        where del_flag = 0
+          and order_id = #{orderId}
+    </select>
+
+    <select id="getInspectionTGroupPersonList" resultType="com.scmt.healthy.entity.TGroupPerson">
+        SELECT t_group_person.id
+             , t_group_person.person_name
+             , t_group_person.sex
+             , t_group_person.id_card
+             , t_group_person.birth
+             , t_group_person.age
+             , t_group_person.dept
+             , t_group_person.jc_type
+             , t_group_person.order_id
+             , t_group_person.group_id
+             , t_group_person.is_pass
+             , t_group_person.test_num
+             , t_group_person.hazard_factors
+             , t_group_person.hazard_factors_text
+             , t_group_person.physical_type
+             , t_group_person.unit_id
+             , t_group_person.check_result
+             , t_group_person.old_group_id
+             , t_group_person.is_recheck
+             , t_group_person.sporadic_physical
+             , CASE
+                   WHEN
+                           ((SELECT COUNT(0) FROM t_depart_item_result WHERE person_id = t_group_person.id AND (arrow = '↑' OR arrow = '↓' OR result = '阳性'))) &gt; 0
+                       THEN 1
+                   ELSE 0 END
+            AS is_all_checked
+        FROM t_group_person ${ew.customSqlSegment}
+    </select>
+
+    <select id="getInspectionTGroupPersonReviewList" resultType="com.scmt.healthy.entity.TGroupPerson">
+        SELECT t_group_person.id
+             , t_group_person.person_name
+             , t_group_person.sex
+             , t_group_person.id_card
+             , t_group_person.birth
+             , t_group_person.age
+             , t_group_person.dept
+             , t_group_person.jc_type
+             , t_group_person.order_id
+             , t_group_person.group_id
+             , t_group_person.is_pass
+             , t_group_person.test_num
+             , t_group_person.hazard_factors
+             , t_group_person.hazard_factors_text
+             , t_group_person.physical_type
+             , t_group_person.unit_id
+             , t_group_person.check_result
+             , t_group_person.old_group_id
+             , t_group_person.is_recheck
+             , t_group_person.sporadic_physical
+             , CASE
+                   WHEN
+                           ((SELECT COUNT(0) FROM t_depart_item_result WHERE person_id = t_group_person.id AND (arrow = '↑' OR arrow = '↓' OR result = '阳性'))) &gt; 0
+                       THEN 1
+                   ELSE 0 END
+            AS is_all_checked
+        FROM t_group_person ${ew.customSqlSegment}
+    </select>
+
+    <select id="getGroupPersonInfo" resultType="map">
+        SELECT p.*,
+               o.physical_type,
+               o.order_code,
+               u.link_phone2 as unit_phone,
+               u.name as unit_name,
+               r.occupational_taboo_now,
+               r.occupational_diseases_now,
+               r.review_result
+        FROM t_group_person p
+                 LEFT JOIN t_group_order o on p.order_id = o.id and o.del_flag = 0
+                 LEFT JOIN t_group_unit u on p.unit_id = u.id and u.del_flag = 0
+                 LEFT JOIN t_inspection_record r on r.person_id = p.id and r.del_flag = 0
+        WHERE p.del_flag = 0
+          and p.id = #{id}
+    </select>
+
+    <select id="queryNoCheckProjectPersonList" resultType="com.scmt.healthy.entity.TGroupPerson">
+        select t_group_person.*,
+               (select GROUP_CONCAT(DISTINCT name)
+                from t_order_group_item
+                where group_id = t_group_person.group_id and del_flag = 0
+                  and id not in (select group_item_id from t_depart_result where person_id = t_group_person.id)
+                  and id not in (select order_group_item_id from relation_person_project_check where person_id = t_group_person.id and state = 2)) as noCheckProjectName
+        from t_group_person ${ew.customSqlSegment}
+    </select>
+
+    <select id="queryTGroupPersonAndResultList" resultType="com.scmt.healthy.entity.TGroupPerson">
+        select t_group_person.id,t_group_person.diagnosis_date,t_group_person.test_num,t_group_person.physical_type
+        from t_group_person
+        ${ew.customSqlSegment}
+        and t_group_person.is_pass > 3
+    </select>
+
+    <select id="queryTGroupPersonAndResultAppList" resultType="com.scmt.healthy.entity.TGroupPerson">
+        select t_group_person.id,t_group_person.create_time,t_group_person.group_id,t_group_person.test_num,t_group_person.physical_type
+        from t_group_person
+        ${ew.customSqlSegment}
+        and (select count(t_group_order.id) from t_group_order where t_group_order.id = t_group_person.order_id) = 0
+    </select>
+
+    <select id="getPersonListNum" resultType="com.scmt.healthy.entity.TGroupPerson">
+        select DISTINCT (select count(1) from t_group_person where order_id in
+        <if test="orderIdList != null and orderIdList.size > 0">
+            <foreach collection="orderIdList" item="item" separator="," open="(" close=")">
+                #{item}
+            </foreach>
+        </if>
+        and is_pass >= 3 and physical_type = #{physicalType} and del_flag = 0) as physicalFinishNum,
+        (select count(1) from t_group_person where order_id in
+        <if test="orderIdList != null and orderIdList.size > 0">
+            <foreach collection="orderIdList" item="item" separator="," open="(" close=")">
+                #{item}
+            </foreach>
+        </if>
+        and is_pass >= 4 and physical_type = #{physicalType} and del_flag = 0) as inspectionFinishNum,
+        (select count(1) from t_group_person where order_id in
+        <if test="orderIdList != null and orderIdList.size > 0">
+            <foreach collection="orderIdList" item="item" separator="," open="(" close=")">
+                #{item}
+            </foreach>
+        </if>
+        and physical_type = #{physicalType} and del_flag = 0) as allNum from t_group_person
+    </select>
+
+    <select id="getPersonNumByGroupId" resultType="com.scmt.healthy.entity.TGroupPerson">
+        select count(1) as personNum
+        from t_group_person
+        where group_id = #{groupId}
+    </select>
+    <select id="getGroupPersonInfoById" resultType="java.util.Map">
+        SELECT p.*, u.name AS unit_name
+        FROM t_group_person p
+                 LEFT JOIN t_group_unit u on p.unit_id = u.id and u.del_flag = 0
+        WHERE p.del_flag = 0
+          AND p.id = #{id}
+    </select>
+    <select id="queryPersonDataListByOrderId" resultType="com.scmt.healthy.entity.TGroupPerson">
+        SELECT t_group_person.person_name
+             , t_group_person.test_num
+             , t_group_person.dept
+             , t_group_person.work_state_text
+             , t_group_person.regist_date
+             , t_group_person.sex
+             , t_group_person.age
+             , t_group_person.mobile
+             , t_group_person.group_id
+        FROM t_group_person
+        WHERE order_id = #{orderId}
+    </select>
+
+    <select id="getGroupPersonInfoByIds" resultType="map">
+        SELECT p.*,
+               o.physical_type,
+               o.order_code,
+               u.name        AS unit_name,
+               u.link_phone2 as unit_phone
+        FROM t_group_person p
+                 LEFT JOIN t_group_order o on p.order_id = o.id and o.del_flag = 0
+                 LEFT JOIN t_group_unit u on p.unit_id = u.id and u.del_flag = 0
+        WHERE p.del_flag = 0
+        <if test="ids != null and ids.size > 0">
+            and p.id in
+            <foreach collection="ids" item="item" separator="," open="(" close=")">
+                #{item}
+            </foreach>
+            ORDER BY FIELD
+            <foreach collection="ids" item="item" separator="," open="(p.id," close=")">
+                #{item}
+            </foreach>
+        </if>
+    </select>
+    <select id="getPersonReviewerCheck" resultType="com.scmt.healthy.entity.TGroupPerson">
+       SELECT
+            id,person_name,is_pass,sex,id_card,birth,age,jc_type,physical_type,sporadic_physical
+        FROM
+            t_group_person
+        ${ew.customSqlSegment}
+
+        and ( SELECT count(1)FROM review_result where   person_id = t_group_person.id
+               <if test="list != null and list != ''">
+                    and  office_id IN
+                    <foreach collection="list" item="item" open="(" separator="," close=")" index="index">
+                        #{item}
+                    </foreach>
+                </if>
+                <if test="startDate != null and startDate != ''">
+                    and  regist_date &gt;= #{startDate}
+                </if>
+                <if test="endDate != null and endDate != ''">
+                    and  regist_date &lt;= #{endDate}
+                </if>
+                and is_pass = 2
+                and del_flag = 0
+                and (state = 1 or state is null)
+            )
+             &gt;(SELECT count( 1 ) FROM t_depart_result
+            WHERE
+            group_item_id IN ( SELECT id FROM review_result WHERE person_id = t_group_person.id
+            <if test="list != null and list != ''">
+                and  office_id IN
+                <foreach collection="list" item="item" open="(" separator="," close=")" index="index">
+                    #{item}
+                </foreach>
+            </if>
+                <if test="startDate != null and startDate != ''">
+                    and  regist_date &gt;= #{startDate}
+                </if>
+                <if test="endDate != null and endDate != ''">
+                    and  regist_date &lt;= #{endDate}
+                </if>
+                and is_pass = 2
+                and del_flag = 0
+                and (state = 1 or state is null)))
+        AND EXISTS (SELECT person_id  FROM review_result WHERE person_id = t_group_person.id
+        <if test="list != null and list != ''">
+            and  office_id IN
+            <foreach collection="list" item="item" open="(" separator="," close=")" index="index">
+                #{item}
+            </foreach>
+        </if>
+        <if test="startDate != null and startDate != ''">
+            and  regist_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null and endDate != ''">
+            and  regist_date &lt;= #{endDate}
+        </if>
+        and is_pass = 2
+        and del_flag = 0
+        and (state = 1 or state is null)
+        )
+
+    </select>
+    <select id="getPersonReviewerNoCheck" resultType="com.scmt.healthy.entity.TGroupPerson">
+        SELECT
+        id,person_name,is_pass,sex,id_card,birth,age,jc_type,physical_type,sporadic_physical
+        FROM
+        t_group_person
+        ${ew.customSqlSegment}
+
+        and ( SELECT count(1)FROM review_result where   person_id = t_group_person.id
+        <if test="list != null and list != ''">
+            and  office_id IN
+            <foreach collection="list" item="item" open="(" separator="," close=")" index="index">
+                #{item}
+            </foreach>
+        </if>
+        <if test="startDate != null and startDate != ''">
+            and  regist_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null and endDate != ''">
+            and  regist_date &lt;= #{endDate}
+        </if>
+        and is_pass = 2
+        and del_flag = 0
+        and state = 1
+        )
+        &lt;=(SELECT count( 1 ) FROM t_depart_result
+        WHERE
+        group_item_id IN ( SELECT id FROM review_result WHERE person_id = t_group_person.id
+        <if test="list != null and list != ''">
+            and  office_id IN
+            <foreach collection="list" item="item" open="(" separator="," close=")" index="index">
+                #{item}
+            </foreach>
+        </if>
+        <if test="startDate != null and startDate != ''">
+            and  regist_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null and endDate != ''">
+            and  regist_date &lt;= #{endDate}
+        </if>
+        and is_pass = 2
+        and del_flag = 0
+        and state = 1 ))
+        AND EXISTS (SELECT person_id  FROM review_result WHERE person_id = t_group_person.id
+        <if test="list != null and list != ''">
+            and  office_id IN
+            <foreach collection="list" item="item" open="(" separator="," close=")" index="index">
+                #{item}
+            </foreach>
+        </if>
+        <if test="startDate != null and startDate != ''">
+            and  regist_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null and endDate != ''">
+            and  regist_date &lt;= #{endDate}
+        </if>
+        and is_pass = 2
+        and del_flag = 0
+        and state = 1)
+
+    </select>
+
+    <select id="updatewAutograph" resultType="java.lang.Integer">
+        select autograph()
+    </select>
+</mapper>

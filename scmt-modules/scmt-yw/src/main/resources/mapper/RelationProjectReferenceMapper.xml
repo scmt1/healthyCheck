@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scmt.healthy.mapper.RelationProjectReferenceMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.scmt.healthy.entity.RelationProjectReference">
+        <id column="id" property="id" />
+        <result column="base_project_id" property="baseProjectId" />
+        <result column="allow_sex" property="allowSex" />
+        <result column="min_age" property="minAge" />
+        <result column="max_age" property="maxAge" />
+        <result column="healthy_value" property="healthyValue" />
+        <result column="occupation_value" property="occupationValue" />
+        <result column="department_id" property="departmentId" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, base_project_id, allow_sex, min_age, max_age, healthy_value, occupation_value, department_id
+    </sql>
+
+</mapper>

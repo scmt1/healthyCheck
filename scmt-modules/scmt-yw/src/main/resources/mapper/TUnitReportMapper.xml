@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scmt.healthy.mapper.TUnitReportMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.scmt.healthy.entity.TUnitReport">
+        <id column="id" property="id" />
+        <result column="order_id" property="orderId" />
+        <result column="code" property="code" />
+        <result column="physical_unit" property="physicalUnit" />
+        <result column="entrust_unit" property="entrustUnit" />
+        <result column="hazard_factors" property="hazardFactors" />
+        <result column="physical_type" property="physicalType" />
+        <result column="physical_date" property="physicalDate" />
+        <result column="physical_number" property="physicalNumber" />
+        <result column="physical_project" property="physicalProject" />
+        <result column="evaluation_basis" property="evaluationBasis" />
+        <result column="concluding_observations" property="concludingObservations" />
+        <result column="is_show" property="isShow" />
+        <result column="del_flag" property="delFlag" />
+        <result column="create_id" property="createId" />
+        <result column="create_time" property="createTime" />
+        <result column="update_id" property="updateId" />
+        <result column="update_time" property="updateTime" />
+        <result column="delete_id" property="deleteId" />
+        <result column="delete_time" property="deleteTime" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, order_id, code, physical_unit, entrust_unit, hazard_factors, physical_type, physical_date, physical_number, physical_project, evaluation_basis, concluding_observations, is_show, del_flag, create_id, create_time, update_id, update_time, delete_id, delete_time
+    </sql>
+
+
+    <select id="queryTUnitReportListByNotPage" resultType="com.scmt.healthy.entity.TUnitReport">
+        SELECT * FROM t_unit_report
+        <where>
+            <if test="searchVo != null">
+                <if test="searchVo.getStartDate()!=null and searchVo.getEndDate()!=null">
+                    AND t_unit_report.create_time BETWEEN #{searchVo.startDate} and #{searchVo.endDate}
+                </if>
+            </if>
+            <if test="tUnitReport != null">
+                <if test="tUnitReport.getOrderId() != null">
+                    AND t_unit_report.order_id = #{tUnitReport.orderId}
+                </if>
+            </if>
+                and t_unit_report.del_flag = 0
+        </where>
+    </select>
+
+
+    <select id="checkThePeopleStatisticsTable" resultType="com.scmt.healthy.entity.TUnitReport">
+        SELECT
+            hazard_factors_text,
+            work_state_text,
+            physical_type,
+            SUM(CASE WHEN check_result IS NOT NULL THEN 1 ELSE 0 END) AS total,
+            SUM(CASE WHEN check_result like '%0%' THEN 1 ELSE 0 END) AS noAbnormalNum,
+            SUM(CASE WHEN check_result like '%1%' THEN 1 ELSE 0 END) AS otherAbnormalNum,
+            SUM(CASE WHEN check_result like '%2%' THEN 1 ELSE 0 END) AS tabooNum,
+            SUM(CASE WHEN check_result like '%3%' THEN 1 ELSE 0 END) AS diseaseNum,
+            SUM(CASE WHEN check_result like '%4%' or is_recheck = 1 THEN 1 ELSE 0 END) AS recheckNum,
+            SUM(CASE WHEN check_result like '%2%' or check_result like '%3%' or check_result like '%4%' or is_recheck = 1 THEN 1 ELSE 0 END) AS recheckNums,
+            SUM(CASE WHEN is_recheck = 1 THEN 1 ELSE 0 END) AS reviewNum,
+            SUM(CASE WHEN is_recheck != 1 THEN 1 ELSE 0 END) AS normalNum,
+            SUM(CASE WHEN is_pass > 1 THEN 1 ELSE 0 END) AS allNum
+        FROM
+            t_group_person
+        WHERE
+            t_group_person.del_flag = 0
+          AND t_group_person.order_id = #{orderId}
+          AND is_pass >= 2
+        GROUP BY
+            hazard_factors,work_state_code
+    </select>
+
+    <select id="checkThePeopleStatisticsTableFinish" resultType="com.scmt.healthy.entity.TUnitReport">
+        SELECT
+            hazard_factors_text,
+            work_state_text,
+            physical_type,
+            SUM(CASE WHEN check_result IS NOT NULL THEN 1 ELSE 0 END) AS total,
+            SUM(CASE WHEN check_result like '%0%' THEN 1 ELSE 0 END) AS noAbnormalNum,
+            SUM(CASE WHEN check_result like '%1%' THEN 1 ELSE 0 END) AS otherAbnormalNum,
+            SUM(CASE WHEN check_result like '%2%' THEN 1 ELSE 0 END) AS tabooNum,
+            SUM(CASE WHEN check_result like '%3%' THEN 1 ELSE 0 END) AS diseaseNum,
+            SUM(CASE WHEN check_result like '%4%' or is_recheck = 1 THEN 1 ELSE 0 END) AS recheckNum,
+            SUM(CASE WHEN check_result like '%2%' or check_result like '%3%' or check_result like '%4%' or is_recheck = 1 THEN 1 ELSE 0 END) AS recheckNums,
+            SUM(CASE WHEN is_recheck = 1 THEN 1 ELSE 0 END) AS reviewNum,
+            SUM(CASE WHEN is_recheck != 1 THEN 1 ELSE 0 END) AS normalNum,
+            SUM(CASE WHEN is_pass > 1 THEN 1 ELSE 0 END) AS allNum
+        FROM
+            t_group_person
+        WHERE
+            t_group_person.del_flag = 0
+          AND t_group_person.order_id = #{orderId}
+          AND is_pass > 3
+        GROUP BY
+            hazard_factors,work_state_code
+    </select>
+
+    <select id="getTUnitReportByOrderId" resultType="com.scmt.healthy.entity.TUnitReport">
+        SELECT t_unit_report.* FROM t_unit_report
+        WHERE t_unit_report.order_id = #{orderId}
+        AND t_unit_report.del_flag = 0
+        GROUP BY t_unit_report.id
+        ORDER BY create_time DESC LIMIT 1
+    </select>
+</mapper>

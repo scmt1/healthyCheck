@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scmt.healthy.mapper.TGroupOrderMapper">
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, order_code, department_id, group_unit_id, group_unit_name, physical_type, sales_director, sales_director_name, signing_time, delivery_time, remark, sales_participant, sales_participant_name, del_flag, create_id, create_time, update_id, update_time, delete_id, delete_time, state, audit_state, pay_status, package_price, package_total, package_discount, person_count, order_price, order_total, order_discount, sporadic_physical, order_path
+    </sql>
+    <select id="queryAllTGroupOrderList" resultType="com.scmt.healthy.entity.TGroupOrder">
+        SELECT
+        t_group_order.id,
+        t_group_order.order_code,
+        t_group_order.department_id,
+        t_group_order.group_unit_id,
+        t_group_order.physical_type,
+        t_group_order.sales_director,
+        t_group_order.sales_director_name,
+        t_group_order.signing_time,
+        t_group_order.delivery_time,
+        t_group_order.remark,
+        t_group_order.sales_participant,
+        t_group_order.sales_participant_name,
+        t_group_order.del_flag,
+        t_group_order.create_id,
+        t_group_order.create_time,
+        t_group_order.update_id,
+        t_group_order.update_time,
+        t_group_order.delete_id,
+        t_group_order.delete_time,
+        t_group_order.state,
+        t_group_order.audit_state,
+        t_group_order. pay_status,
+        t_group_order.package_price,
+        t_group_order.package_total,
+        t_group_order.package_discount,
+        t_group_order.person_count,
+        t_group_order.order_price,
+        t_group_order.order_total,
+        t_group_order.order_discount,
+        t_group_order.sporadic_physical,
+        t_group_order.order_path,
+        t_group_unit.name AS group_unit_name  FROM t_group_order
+        LEFT JOIN t_group_unit ON t_group_order.group_unit_id = t_group_unit.id
+        LEFT JOIN t_order_group ON t_group_order.id = t_order_group.group_order_id
+        ${ew.customSqlSegment}
+    </select>
+
+    <!--分页查询-->
+    <select id="queryGroupOrderListByPage" resultType="com.scmt.healthy.entity.TGroupOrder">
+         SELECT t_group_order.*,
+         t_group_unit.name AS group_unit_name  FROM t_group_order
+        LEFT JOIN t_group_unit ON t_group_order.group_unit_id = t_group_unit.id
+        ${ew.customSqlSegment}
+    </select>
+
+    <!--分页查询-->
+    <select id="queryGroupOrderAppListByPage" resultType="com.scmt.healthy.entity.TGroupOrder">
+         SELECT t_group_order.*,
+         t_group_unit.name AS unitName,
+        GROUP_CONCAT(DISTINCT t_order_group.combo_id) AS comboIds
+        FROM t_group_order
+        LEFT JOIN t_group_unit ON t_group_order.group_unit_id = t_group_unit.id
+        LEFT JOIN t_order_group ON t_order_group.group_order_id = t_group_order.id
+        ${ew.customSqlSegment}
+    </select>
+
+    <!--分页查询-->
+    <select id="queryApproveTGroupOrderList" resultType="com.scmt.healthy.entity.TGroupOrder">
+         SELECT t_group_order.*  FROM t_group_order
+        ${ew.customSqlSegment}
+    </select>
+
+    <select id="getOneByWhere" resultType="com.scmt.healthy.entity.TGroupOrder">
+        SELECT * FROM t_group_order WHERE DAY(create_time) = DAY(NOW()) AND department_id = #{departmentId} ORDER BY create_time DESC LIMIT 1
+    </select>
+
+    <!--查询订单待审批与已审批数量（主治医师）-->
+    <select id="getTGroupOrderNumByCreateId" resultType="com.scmt.healthy.entity.TGroupOrder">
+        select
+            SUM(CASE WHEN  audit_state = '1' THEN 1 ELSE 0 END) as waitApprove
+            ,SUM(CASE WHEN  audit_state = '2' or audit_state = '3' or audit_state = '4' THEN 1 ELSE 0 END) as approved
+        from t_group_order
+       where  physical_type =  #{physicalType} and del_flag = 0
+    </select>
+    <!--查询订单待审批与已审批数量(体检中心主任)-->
+    <select id="getTGroupOrderNum" resultType="com.scmt.healthy.entity.TGroupOrder">
+        select
+            SUM(CASE WHEN  audit_state = '2' THEN 1 ELSE 0 END) as waitApprove
+            ,SUM(CASE WHEN  audit_state = '3' or audit_state = '4' THEN 1 ELSE 0 END) as approved
+        from t_group_order
+        where physical_type =  #{physicalType} and del_flag = 0
+    </select>
+    <!--查询订单待审批与已审批数量(技术负责人)-->
+    <select id="getTGroupOrderNumFinish" resultType="com.scmt.healthy.entity.TGroupOrder">
+        select
+            SUM(CASE WHEN  audit_state = '3' THEN 1 ELSE 0 END) as waitApprove
+            ,SUM(CASE WHEN  audit_state = '4' THEN 1 ELSE 0 END) as approved
+        from t_group_order
+        where physical_type =  #{physicalType} and del_flag = 0
+    </select>
+
+
+    <!--根据团检订单id 查询信息，同时关联公司信息-->
+    <select id="getTGroupOrderByIdWithLink" resultType="map">
+       select g.*,u.* from t_group_order g LEFT JOIN t_group_unit u on g.group_unit_id = u.id WHERE g.del_flag = 0 and g.id = #{id};
+    </select>
+
+    <select id="getComNameByGroupId" resultType="map">
+        SELECT `name`,id FROM t_combo  WHERE id = (SELECT combo_id from t_order_group WHERE id = #{groupId})
+    </select>
+
+</mapper>

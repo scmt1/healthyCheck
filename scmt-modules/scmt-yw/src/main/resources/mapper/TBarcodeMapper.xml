@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scmt.healthy.mapper.TBarcodeMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.scmt.healthy.entity.TBarcode">
+        <id column="id" property="id" />
+        <result column="person_id" property="personId" />
+        <result column="group_item_id" property="groupItemId" />
+        <result column="barcode" property="barcode" />
+        <result column="create_time" property="createTime" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, person_id, group_item_id, barcode, create_time
+    </sql>
+
+    <select id="getOneByWhere" resultType="com.scmt.healthy.entity.TBarcode">
+        SELECT * FROM t_barcode WHERE DAY(create_time) = DAY(NOW()) AND type = 1 ORDER BY create_time DESC,barcode DESC LIMIT 1
+    </select>
+    <select id="getOneByTestNum" resultType="com.scmt.healthy.entity.TBarcode">
+        SELECT * FROM t_barcode WHERE DAY(create_time) = DAY(NOW()) AND type = 2 ORDER BY create_time DESC,barcode DESC LIMIT 1
+    </select>
+
+    <select id="getTBarcodeByPersonId" resultType="com.scmt.healthy.entity.TBarcode">
+        SELECT * FROM t_barcode WHERE person_id = #{personId} and test_num = #{testNum} and type = 2
+    </select>
+
+    <select id="getTBarcodeByPersonIdAndItemId" resultType="com.scmt.healthy.entity.TBarcode">
+        SELECT * FROM t_barcode WHERE person_id = #{personId} and group_item_id = #{groupItemId} and test_num = #{testNum}
+    </select>
+    <select id="checkBarcodeExists" resultType="java.lang.Integer">
+        SELECT COUNT(0) FROM  t_barcode WHERE DAY(create_time) = DAY(NOW()) AND barcode = #{barcode}
+    </select>
+</mapper>
