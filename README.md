@@ -1,11 +1,11 @@
 <p align="center">
-	<a href="https://scmtww.gnway.cc:9123"><img src="http://223.87.166.240:8014/logo.png"></a>
+	<a href="hhttps://223.87.166.240:9123"><img src="http://223.87.166.240:8014/logo.png"></a>
 </p>
 <p align="center">
 	<strong>适合互联网企业使用的开源职业体检管理系统</strong>
 </p>
 <p align="center">
-	👉 <a href="https://scmtww.gnway.cc:9123">https://scmtww.gnway.cc</a> 👈
+	👉 <a href="https://223.87.166.240:9123">https://scmtww.gnway.cc</a> 👈
 </p>
 
 <p align="center">
@@ -25,9 +25,11 @@
 
 ## 📚 项目介绍
 
-backend是一套适合互联网企业使用的开源职业体检管理系统，可以对接医院各个设备便于数据录入以及出具体检报告。
+healthyCheck是一套适合互联网企业使用的开源体检管理系统，可直接用于健康体检、职业体检、从业体检，适合个体检中心使用，可以对接医院各个设备、LIS、PACS、HIS系统便于数据录入以及出具体检报告，本项目为后端代码工程。
 
-backend使用`Spring Boot`和`iView Vue`开发，集成`Spring Security`实现权限管理功能，是一套非常实用的web开发框架。
+healthyCheck使用`Spring Boot`和`iView Vue`开发，集成`Spring Security`实现权限管理功能，是一套非常实用的web开发框架。
+
+前端工程项目代码：https://gitee.com/scmt1/healthyCheck-ui
 
 
 ## 🍎 项目特点
@@ -39,6 +41,9 @@ backend使用`Spring Boot`和`iView Vue`开发，集成`Spring Security`实现�
 * 管理平台操作界面简洁、易用
 * 使用`spring security`实现权限管理
 * 前后端分离架构，方便二次开发
+
+## 🍟 项目体验
+- 健康体检管理系统：[https://223.87.166.240:9123](https://223.87.166.240:9123 "健康体检管理系统体验")
 
 ## 🥞 系统架构
 
@@ -96,7 +101,8 @@ backend
 公司名称：四川民图科技有限公司
 地址：成都市金牛区北三环路一段221号
 电话：0830-2663368
-业务 QQ：771510279
+业务 QQ：1544857622
 业务合作：scmtkj@163.com
+微信：dj18428385268
 
 
