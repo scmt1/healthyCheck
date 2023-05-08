@@ -2,6 +2,8 @@ package com.scmt.healthy.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import java.time.LocalDateTime;
+
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import java.io.Serializable;
 import java.util.Date;
@@ -56,5 +58,14 @@ public class TPastMedicalHistory implements Serializable {
 
     @ApiModelProperty(value = "是否患病")
     private String yesOrNoSick;
+
+    @ApiModelProperty(value = "证件号码")
+    @TableField(exist = false)
+    private String idCard;
+
+    @ApiModelProperty("登记号码")
+    @TableField(exist = false)
+    private String registrationNumber;
+
 
 }

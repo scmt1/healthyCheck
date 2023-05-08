@@ -55,5 +55,7 @@ public interface ITReviewProjectService extends IService<TReviewProject> {
 
     List<TGroupPerson> queryReviewPersonData(String orderId);
 
+    List<TGroupPerson> queryReviewResultData(String orderId);
+
 	List<TGroupPerson> queryAllPersonData(String orderId);
 }

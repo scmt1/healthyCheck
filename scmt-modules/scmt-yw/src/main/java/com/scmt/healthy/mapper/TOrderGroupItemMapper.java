@@ -23,7 +23,9 @@ public interface TOrderGroupItemMapper extends BaseMapper<TOrderGroupItem> {
 
     Integer getAllCheckCount(@Param(value = "personId") String personId, @Param(value = "groupId") String groupId);
 
-    Integer getDepartResultCount(@Param(value = "personId") String personId, @Param(value = "groupId") String groupId);
+    Integer getAllCheckCountReview(@Param(value = "personId") String personId, @Param(value = "groupId") String groupId);
+
+    Integer getDepartResultCount(@Param(value = "personId") String personId, @Param(value = "groupId") String groupId ,@Param(value = "giveUp") String giveUp);
 
     List<TOrderGroupItem> queryOrderGroupItemList(@Param("groupOrderId") String groupOrderId, @Param(value = "groupId") String groupId);
 

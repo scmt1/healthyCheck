@@ -49,6 +49,12 @@
         <result column="enrol_address" property="enrolAddress" />
         <result column="enrol_postal_code" property="enrolPostalCode" />
         <result column="occ_mana_office" property="occManaOffice" />
+        <result column="credit_code_emp" property="creditCodeEmp" />
+        <result column="crpt_name_emp" property="crptNameEmp" />
+        <result column="indus_type_code_emp" property="indusTypeCodeEmp" />
+        <result column="economy_code_emp" property="economyCodeEmp" />
+        <result column="crpt_size_code_emp" property="crptSizeCodeEmp" />
+        <result column="zone_code_emp" property="zoneCodeEmp" />
     </resultMap>
 
     <!-- 通用查询结果列 -->

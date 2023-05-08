@@ -197,6 +197,10 @@ public class TdTjBhk implements Serializable {
     @TableField("ZONE_CODE_EMP")
     private String zoneCodeEmp;
 
+    @ApiModelProperty(value = "订单编号")
+    @TableField("order_code")
+    private String orderCode;
+
     @ApiModelProperty(value = "是否上传标志 是否上传标识--0：未上传 1：上传成功 2：上传失败")
     private Integer flag;
 

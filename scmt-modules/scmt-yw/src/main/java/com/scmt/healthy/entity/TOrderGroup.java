@@ -76,6 +76,9 @@ public class TOrderGroup implements Serializable {
     @ApiModelProperty(value = "套餐id")
     private String comboId;
 
+    @ApiModelProperty(value = "排序")
+    private Integer orderNum;
+
     @ApiModelProperty(value = "分组项目")
     @TableField(exist = false)
     private List<TOrderGroupItem> projectData;
@@ -106,6 +109,9 @@ public class TOrderGroup implements Serializable {
     @ApiModelProperty(value = "环评因素")
     private String eiaFactors;
 
+    @ApiModelProperty(value = "优惠价格")
+    private Integer discountPrice;
+
     @ApiModelProperty(value = "检查项目")
     @TableField(exist = false)
     private String projects;
@@ -113,4 +119,12 @@ public class TOrderGroup implements Serializable {
     @ApiModelProperty(value = "价格")
     @TableField(exist = false)
     private Integer prices;
+
+    @ApiModelProperty(value = "危害因素code")
+    @TableField(exist = false)
+    private List<String> hazardFactorCodes;
+
+    @ApiModelProperty(value = "危害因素text")
+    @TableField(exist = false)
+    private List<String> hazardFactorTexts;
 }

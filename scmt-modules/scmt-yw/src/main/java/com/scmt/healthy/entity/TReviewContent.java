@@ -1,7 +1,6 @@
 package com.scmt.healthy.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.annotations.ApiModel;
@@ -11,12 +10,7 @@ import lombok.EqualsAndHashCode;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.io.Serializable;
-import java.math.BigDecimal;
-import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
-import java.util.Set;
 
 /**
  * <p>
@@ -112,7 +106,7 @@ public class TReviewContent implements Serializable {
     private Integer isCanService;
 
     @ApiModelProperty(value = "不能为委托单位提供职业健康检查服务，原因")
-    private Integer reason;
+    private String reason;
 
     @ApiModelProperty(value = "质控科负责人或体检中心负责人")
     private String conclusionPersonInCharge;
@@ -127,6 +121,9 @@ public class TReviewContent implements Serializable {
 
     @ApiModelProperty(value = "是否同意批准")
     private Integer isAgree;
+
+    @ApiModelProperty(value = "不同意批准，原因")
+    private String reasonNoAgree;
 
     @ApiModelProperty(value = "审核批准日期")
     @JsonFormat(timezone = "GMT+8", pattern = "yyyy-MM-dd")

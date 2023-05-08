@@ -75,11 +75,6 @@ spring:
   autoconfigure:
     exclude: com.alibaba.druid.spring.boot.autoconfigure.DruidDataSourceAutoConfigure
   datasource:
-#    url: jdbc:mysql://172.1.4.66:3306/healthy?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=GMT%2B8
-#    username: develop
-#    password: 123456
-#    type: com.alibaba.druid.pool.DruidDataSource
-#    driverClassName: com.mysql.jdbc.Driver
     dynamic:
       primary: master
       strict: false
@@ -87,19 +82,19 @@ spring:
         #基础数据
         master:
           url: jdbc:mysql://192.168.1.147:3306/healthy?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=GMT%2B8&allowPublicKeyRetrieval=true
-#          url: jdbc:mysql://127.0.0.1:3306/healthy?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=GMT%2B8&allowPublicKeyRetrieval=true
           driver-class-name: com.mysql.cj.jdbc.Driver
           username: develop
           password: 123456
         #网报数据
         sub:
           url: jdbc:mysql://192.168.1.147:3306/stjt_health_exam?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=GMT%2B8&allowPublicKeyRetrieval=true
-#          url: jdbc:mysql://127.0.0.1:3306/stjt_health_exam?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=GMT%2B8&allowPublicKeyRetrieval=true
           driver-class-name: com.mysql.cj.jdbc.Driver
           username: develop
           password: 123456
     # Druid StatViewServlet配置
     druid:
+      mysql:
+        usePingMethod: false
       stat-view-servlet:
         # 默认true 内置监控页面首页/druid/index.html
         enabled: true
@@ -353,6 +348,10 @@ ignored:
     - /scmt/user/sendMsm
     - /scmt/tGroupPersonApp/**
     - /scmt/tGroupPerson/queryTGroupPersonAndResultList
+    - /scmt/tGroupPerson/batchUpdateUserAndPersonAndWzAndInspect
+    - /scmt/tGroupPerson/batchUpdateDepartResultData
+    - /scmt/tGroupPerson/batchUpdateCheckSignAll
+    - /scmt/tGroupPerson/downTemplate
     - /scmt/tGroupPerson/queryTGroupPersonAppList
     - /scmt/tGroupPerson/queryTGroupPersonApp
     - /scmt/tGroupPerson/getTInspectRecordAndGroupItemResult
@@ -378,6 +377,8 @@ ignored:
     - /**/*.png
     - /**/*.ico
     - /scmt/test/**
+    - /scmt/tCheckOrg/saveOrUpdatePersonInfo
+    - /scmt/**/**
   # 限流及黑名单不拦截的路径
   limitUrls:
     - /**/*.js
@@ -438,8 +439,8 @@ license:
   subject: dataCenter
   publicAlias: publicCert
   storePass: public_password1234
-  licensePath: /storeFile/dataCenter/license.lic
-  publicKeysStorePath: /storeFile/dataCenter/publicCerts.keystore
+  licensePath: C:/storeFile/dataCenter/license.lic
+  publicKeysStorePath: C:/storeFile/dataCenter/publicCerts.keystore
 
 skconfig:
   # 作为server 端的Ip
@@ -453,6 +454,54 @@ skconfig:
   #技术负责人
   technicalDirector: '1530129299582095360'
   #lis码是否统一
-  lisCode: false
+  lisCode: true
   #是否定时更新问诊签名
-  isAutograph: true
+  isAutograph: false
+  #同步数据是否开启名字模糊查询
+  isPersonName: false
+  #同步数据是否开启code模糊查询
+  isCodeLike: false
+  #是否展示心电图条码
+  isShowXDT: false
+  #是否去掉条码下的项目名称(去掉之后以“姓名-年龄 条码号”展示)
+  isDeleteCodeName: false
+  #是否以“姓名-年龄-项目名 条码号”展示
+  isShowByNameSexProject: true
+  #是否额外增加两个条码
+  isAddCode: false
+  #是否匹配血常规图片
+  isUpdateBloodImg: false
+  #是否生成13位复查条码
+  isThirteenCode: true
+  #是否使用wps打印
+  isWpsPrint: false
+  #是否生化合并
+  isbiochemistryMerge: true
+  #是否匹配分组套餐
+  isMatchingGroupCombo: false
+  #是否修改创建方法(订单、体检、条码编号)
+  isUpdateCreateMethd: false
+  #是否展示第一次检查结果
+  isInitialMerger: true
+  #体检诊台是否合并问诊页面
+  isCombinedConsultation : true
+  #弃检后的小结
+  giveUp : "受检人因个人原因自愿弃检"
+
+reporting:
+  #hie_app_key
+  hieAppKey: 'MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAMQnkRMriK2hsKxFZnu5O5152ITG7EiafzU8Sxj%2BT6Irh8IdwcV3AS7Qt2M7aIXHrnprb%2BpsxlkaMGdTeN7%2F8WkCAwEAAQ%3D%3D'
+  #秘钥字符串
+  hieAdapter: 'HIE_ADAPTER_382d8d3b4e6bc62de8b984ac84acf492'
+  #请求ip
+  reportingIp: 'http://183.220.195.216:9080'
+  #从业体检上传账号
+  username: 'ceshi-public'
+  #从业体检上传密码
+  password: 'Ehr123456@'
+  #发证单位
+  name: '彭州磊络福兴医院'
+  #机构内自增码
+  registration: '51002501'
+  #是否调用获取token定时任务
+  isToken: true

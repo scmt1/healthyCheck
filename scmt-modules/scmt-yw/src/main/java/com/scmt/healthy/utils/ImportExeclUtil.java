@@ -2,10 +2,11 @@ package com.scmt.healthy.utils;
 
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import org.apache.commons.beanutils.PropertyUtils;
-import org.apache.poi.hssf.usermodel.HSSFCell;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.io.IOException;
@@ -88,6 +89,37 @@ public class ImportExeclUtil
         dataLst = readDate(wb);
 
         return dataLst;
+    }
+    /**
+     * 字符串转时间
+     * @param dateString
+     * @param pattern
+     * @return
+     * @throws Exception
+     */
+    public static Date parseString2Date(String dateString, String pattern) throws Exception {
+        if (dateString == null) {
+            return null;
+        }
+        SimpleDateFormat sdf = new SimpleDateFormat(pattern);
+        Date date = sdf.parse(dateString);
+        return date;
+    }
+
+    /**
+     * 时间转字符串
+     * @param date
+     * @param pattern
+     * @return
+     * @throws Exception
+     */
+    public static String parseDate2String(Date date, String pattern) throws Exception {
+        if (date == null) {
+            return null;
+        }
+        SimpleDateFormat sdf = new SimpleDateFormat(pattern);
+        String strDate = sdf.format(date);
+        return strDate;
     }
 
     /**
@@ -354,7 +386,7 @@ public class ImportExeclUtil
                     if (org.apache.poi.ss.usermodel.DateUtil.isCellDateFormatted(cell))
                     {
                         Date theDate = cell.getDateCellValue();
-                        SimpleDateFormat dff = new SimpleDateFormat("yyyy-MM-dd");
+                        SimpleDateFormat dff = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                         cellValue = dff.format(theDate);
                     }
                     else

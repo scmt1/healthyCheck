@@ -1,36 +1,30 @@
 package com.scmt.healthy.controller;
 
-import java.util.*;
-import java.util.stream.Collectors;
-
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.scmt.healthy.entity.TGroupPerson;
-import com.scmt.healthy.entity.TOrderGroupItem;
-import com.scmt.healthy.service.IRelationPersonProjectCheckService;
-
-import javax.servlet.http.HttpServletResponse;
-
-import com.scmt.healthy.service.ITGroupPersonService;
-import com.scmt.healthy.service.ITOrderGroupItemService;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.core.toolkit.StringUtils;
+import com.scmt.core.common.annotation.SystemLog;
+import com.scmt.core.common.enums.LogType;
 import com.scmt.core.common.utils.ResultUtil;
+import com.scmt.core.common.utils.SecurityUtil;
 import com.scmt.core.common.vo.PageVo;
 import com.scmt.core.common.vo.Result;
 import com.scmt.core.common.vo.SearchVo;
-import com.scmt.core.common.utils.SecurityUtil;
-import com.scmt.core.common.annotation.SystemLog;
-import com.scmt.healthy.entity.RelationPersonProjectCheck;
-import com.baomidou.mybatisplus.core.toolkit.StringUtils;
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.scmt.core.common.enums.LogType;
+import com.scmt.healthy.entity.*;
+import com.scmt.healthy.service.*;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import org.checkerframework.checker.units.qual.A;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletResponse;
+import javax.transaction.Transactional;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
 
 /**
  * @author
@@ -51,6 +45,10 @@ public class RelationPersonProjectCheckController {
     private IRelationPersonProjectCheckService iRelationPersonProjectCheckService;
     @Autowired
     private ITGroupPersonService personService;
+    @Autowired
+    private ITDepartResultService itDepartResultService;
+    @Autowired
+    private ITDepartItemResultService itDepartItemResultService;
 
     /**
      * 功能描述：新增人员科室确认表数据
@@ -67,7 +65,15 @@ public class RelationPersonProjectCheckController {
         }
         try {
             List<String> deparmentIds = securityUtil.getDeparmentIds();
-            List<TOrderGroupItem> list = relationPersonProjectCheckService.getNoRegistProjectData(relationPersonProjectCheck.getPersonId(), deparmentIds);
+            List<TOrderGroupItem> list = new ArrayList<>();
+            list = relationPersonProjectCheckService.getNoRegistProjectData(relationPersonProjectCheck.getPersonId(), deparmentIds);
+            Boolean isUpdate = true;
+            if (list == null || list.size() == 0) {
+                list = relationPersonProjectCheckService.getNoRegistProjectDataReview(relationPersonProjectCheck.getPersonId(), deparmentIds);
+                if (list != null && list.size() > 0) {
+                    isUpdate = false;
+                }
+            }
             ArrayList<RelationPersonProjectCheck> objects = new ArrayList<>();
             for (TOrderGroupItem item : list) {
                 RelationPersonProjectCheck rpj = new RelationPersonProjectCheck();
@@ -79,7 +85,7 @@ public class RelationPersonProjectCheckController {
             }
             if (objects.size() > 0) {
                 boolean b = relationPersonProjectCheckService.saveBatch(objects);
-                if (b) {
+                if (b && isUpdate) {
                     TGroupPerson byId = itGroupPersonService.getById(relationPersonProjectCheck.getPersonId());
                     if (byId.getIsWzCheck() == 1 && byId.getIsPass() < 3) {
                         //所有检查项       //查询复查检查项和已检项
@@ -91,6 +97,7 @@ public class RelationPersonProjectCheckController {
                         checkQueryWrapper.eq("state", 2);
                         checkQueryWrapper.eq("person_id", byId.getId());
                         int count2 = iRelationPersonProjectCheckService.count(checkQueryWrapper);
+                        /*int count2 = 0;*/
 
                         //全部检查完  修改状态为3，到总检
                         if (count1.intValue() >= (count.intValue() - count2)) {
@@ -130,6 +137,25 @@ public class RelationPersonProjectCheckController {
             wrapper.eq("order_group_item_id", relationPersonProjectCheck.getOrderGroupItemId());
             RelationPersonProjectCheck one = relationPersonProjectCheckService.getOne(wrapper);
             one.setAbandonRenson(relationPersonProjectCheck.getAbandonRenson());
+            if (one != null) {
+                QueryWrapper<TDepartResult> queryWrapper = new QueryWrapper();
+                queryWrapper.eq("person_id", one.getPersonId());
+                queryWrapper.eq("group_item_id", one.getOrderGroupItemId());
+                List<TDepartResult> list1 = itDepartResultService.list(queryWrapper);
+                if (list1.size() > 0) {
+                    for (TDepartResult departResult : list1) {
+                        QueryWrapper<TDepartItemResult> queryWrapper1 = new QueryWrapper<>();
+                        queryWrapper1.eq("person_id", departResult.getPersonId());
+                        queryWrapper1.eq("order_group_item_id", departResult.getGroupItemId());
+                        List<TDepartItemResult> list = itDepartItemResultService.list(queryWrapper1);
+                        if (list.size() > 0) {
+                            itDepartItemResultService.remove(queryWrapper1);
+                        }
+
+                    }
+                    itDepartResultService.remove(queryWrapper);
+                }
+            }
             //检查人员信息
             TGroupPerson byId = personService.getById(relationPersonProjectCheck.getPersonId());
             byId.setAvatar(null);
@@ -148,6 +174,7 @@ public class RelationPersonProjectCheckController {
                     checkQueryWrapper.eq("person_id", byId.getId());
                     int count2 = iRelationPersonProjectCheckService.count(checkQueryWrapper);
 
+                    /*int count2 = 0;*/
                     //全部检查完  修改状态为3，到总检
                     if (count1.intValue() >= (count.intValue() - count2)) {
                         byId.setIsPass(3);
@@ -180,6 +207,7 @@ public class RelationPersonProjectCheckController {
                     checkQueryWrapper.eq("state", 2);
                     checkQueryWrapper.eq("person_id", byId.getId());
                     int count2 = iRelationPersonProjectCheckService.count(checkQueryWrapper);
+                 /*   Integer count2 = 0;*/
 
                     //全部检查完  修改状态为3，到总检
                     if (count1.intValue() >= (count.intValue() - count2)) {
@@ -202,6 +230,133 @@ public class RelationPersonProjectCheckController {
             return ResultUtil.error("保存异常:" + e.getMessage());
         }
     }
+
+    @SystemLog(description = "更新人员科室确认表数据", type = LogType.OPERATION)
+    @ApiOperation("更新人员科室确认表数据")
+    @PostMapping("updateCancelPersonProjectCheck")
+    @Transactional(rollbackOn = {Exception.class})
+    public Result<Object> updateCancelPersonProjectCheck(@RequestBody RelationPersonProjectCheck relationPersonProjectCheck) {
+        if (StringUtils.isBlank(relationPersonProjectCheck.getPersonId()) && StringUtils.isBlank(relationPersonProjectCheck.getOfficeId()) && StringUtils.isBlank(relationPersonProjectCheck.getOrderGroupItemId())) {
+            return ResultUtil.error("参数为空，请联系管理员！！");
+        }
+        try {
+            QueryWrapper<RelationPersonProjectCheck> wrapper = new QueryWrapper<>();
+            wrapper.eq("person_id", relationPersonProjectCheck.getPersonId());
+            wrapper.eq("office_id", relationPersonProjectCheck.getOfficeId());
+            wrapper.eq("state", 2);
+            wrapper.eq("order_group_item_id", relationPersonProjectCheck.getOrderGroupItemId());
+            RelationPersonProjectCheck one = relationPersonProjectCheckService.getOne(wrapper);
+            one.setAbandonRenson(relationPersonProjectCheck.getAbandonRenson());
+            //检查人员信息
+            TGroupPerson byId = personService.getById(relationPersonProjectCheck.getPersonId());
+            byId.setAvatar(null);
+            if (byId != null && byId.getIsPass() != null) {
+                //如果到科室登记过了的，直接修改状态为取消弃检，否则直接新增一条弃检记录
+                if (one != null) {
+                    if (byId.getIsPass() > 2) {
+                        byId.setIsPass(2);
+                        boolean resP = personService.updateById(byId);
+                        if (resP) {
+                            //清除弃检结果
+                            boolean removeRes = this.removeResult(one);
+                            if (!removeRes) {
+                                //手工回滚异常
+                                TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                                return ResultUtil.error("修改失败：清除弃检结果失败");
+                            }
+                            //修改到检状态
+                            one.setState(1);
+                            boolean res = relationPersonProjectCheckService.updateById(one);
+                            if (res) {
+                                return ResultUtil.data(res, "修改成功");
+                            } else {
+                                //手工回滚异常
+                                TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                                return ResultUtil.error("修改到检状态失败");
+                            }
+                        } else {
+                            //手工回滚异常
+                            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                            return ResultUtil.error("修改人员体检状态失败");
+                        }
+                    } else {
+                        //清除弃检结果
+                        boolean removeRes = this.removeResult(one);
+                        if (!removeRes) {
+                            //手工回滚异常
+                            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                            return ResultUtil.error("修改失败：清除弃检结果失败");
+                        }
+                        //修改到检状态
+                        one.setState(1);
+                        boolean res = relationPersonProjectCheckService.updateById(one);
+                        if (res) {
+                            return ResultUtil.data(res, "修改成功");
+                        } else {
+                            //手工回滚异常
+                            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                            return ResultUtil.error("修改到检状态失败");
+                        }
+                    }
+                } else {
+                    //清除弃检结果
+                    boolean removeRes = this.removeResult(one);
+                    if (!removeRes) {
+                        //手工回滚异常
+                        TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                        return ResultUtil.error("修改失败：清除弃检结果失败");
+                    }
+                    RelationPersonProjectCheck personProjectCheck = new RelationPersonProjectCheck();
+                    personProjectCheck.setPersonId(relationPersonProjectCheck.getPersonId());
+                    personProjectCheck.setOfficeId(relationPersonProjectCheck.getOfficeId());
+                    personProjectCheck.setState(1);
+                    personProjectCheck.setOrderGroupItemId(relationPersonProjectCheck.getOrderGroupItemId());
+                    boolean save = relationPersonProjectCheckService.save(personProjectCheck);
+                    if (save) {
+                        return ResultUtil.data(save, "修改成功");
+                    } else {
+                        //手工回滚异常
+                        TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                        return ResultUtil.error("修改到检状态失败");
+                    }
+                }
+            } else {
+                //手工回滚异常
+                TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                return ResultUtil.error("修改失败：体检人员不存在或体检状态为空！");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            //手工回滚异常
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+            return ResultUtil.error("保存异常:" + e.getMessage());
+        }
+    }
+
+    /**
+     * 清除结果(取消弃检 需先清除弃检结果)
+     */
+    public boolean removeResult(RelationPersonProjectCheck one) {
+        //清除已保存弃检项目 的结果(组合项)
+        QueryWrapper<TDepartResult> tDepartResultQueryWrapper = new QueryWrapper<>();
+        tDepartResultQueryWrapper.eq("del_flag", 0);
+        tDepartResultQueryWrapper.eq("person_id", one.getPersonId());
+        tDepartResultQueryWrapper.eq("group_item_id", one.getOrderGroupItemId());
+        boolean resD = itDepartResultService.remove(tDepartResultQueryWrapper);
+        //清除已保存弃检项目 的结果(基础项)
+        QueryWrapper<TDepartItemResult> tDepartItemResultQueryWrapper = new QueryWrapper<>();
+        tDepartItemResultQueryWrapper.eq("del_flag", 0);
+        tDepartItemResultQueryWrapper.eq("person_id", one.getPersonId());
+        tDepartItemResultQueryWrapper.eq("order_group_item_id", one.getOrderGroupItemId());
+        boolean resDr = itDepartItemResultService.remove(tDepartItemResultQueryWrapper);
+        //返回清除结果
+        if (resD && resDr) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
 
     /**
      * 功能描述：根据主键来删除数据

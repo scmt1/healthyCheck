@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scmt.healthy.mapper.TPositiveResultsRuleMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.scmt.healthy.entity.TPositiveResultsRule">
+        <id column="id" property="id" />
+        <result column="condition" property="condition" />
+        <result column="gender_appropriate" property="genderAppropriate" />
+        <result column="positiveId" property="positiveId" />
+        <result column="project_name" property="projectName" />
+        <result column="type" property="type" />
+        <result column="regular_value" property="regularValue" />
+        <result column="judgment_condition" property="judgmentCondition" />
+        <result column="exclude_positive" property="excludePositive" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, condition, gender_appropriate, positiveId, project_name, type, regular_value, judgment_condition, exclude_positive
+    </sql>
+    <select id="getByPositiveId" resultType="com.scmt.healthy.entity.TPositiveResultsRule">
+        select * from t_positive_results_rule where positiveId= #{id}
+    </select>
+    <select id="getById" resultType="com.scmt.healthy.entity.TPositiveResultsRule">
+         select * from t_positive_results_rule where id= #{id}
+    </select>
+    <select id="getAllPositiceRuleList" resultType="com.scmt.healthy.entity.TPositiveResultsRule">
+        SELECT
+            t_positive_results_rule.*,
+            t_positive_rule.project_name AS projectNames,
+            t_positive_rule.type AS types,
+            t_positive_rule.regular_value AS regularValues
+        FROM
+            t_positive_results_rule
+            LEFT JOIN t_positive_rule ON t_positive_results_rule.id = t_positive_rule.positive_results_id
+    </select>
+
+</mapper>

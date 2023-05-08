@@ -1,10 +1,13 @@
 package com.scmt.healthy.service;
 
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.service.IService;
 import com.scmt.core.common.vo.PageVo;
 import com.scmt.core.common.vo.SearchVo;
 import com.scmt.healthy.entity.TGroupPerson;
+import com.scmt.healthy.entity.TInspectionRecord;
+import com.scmt.healthy.entity.TReviewPerson;
+
 import javax.servlet.http.HttpServletResponse;
 import java.util.List;
 import java.util.Map;
@@ -75,10 +78,23 @@ public interface ITGroupPersonService extends IService<TGroupPerson> {
     Map<String, Object> getGroupPersonInfo(String id, String type);
 
     /**
+     * 根据id和状态获取团检人员关联信息
+     * @param id
+     * @return
+     */
+    Map<String, Object> getGroupPersonInfoReview(String id);
+
+    /**
      * 功能描述：实现分页查询
      * @return 返回获取结果
      */
     public IPage<TGroupPerson> getTGroupPersonInspection(TGroupPerson  tGroupPerson, SearchVo searchVo, PageVo pageVo);
+
+    /**
+     * 功能描述：实现分页查询
+     * @return 返回获取结果
+     */
+    public IPage<TGroupPerson> getTGroupPersonInspectionTypeStatus(TGroupPerson  tGroupPerson, SearchVo searchVo, PageVo pageVo);
 
     /**
      * 功能描述：实现分页查询
@@ -100,6 +116,25 @@ public interface ITGroupPersonService extends IService<TGroupPerson> {
      * @return 返回获取结果
      */
     public IPage<TGroupPerson> queryNoCheckProjectPersonList(TGroupPerson  tGroupPerson, SearchVo searchVo, PageVo pageVo);
+    /**
+     * 功能描述：实现复查人员分页查询
+     * @param tGroupPerson 需要模糊查询的信息
+     * @param searchVo 排序参数
+     * @param pageVo 分页参数
+     * @return 返回获取结果
+     */
+
+    public IPage<TReviewPerson> queryNoCheckProjectPersonReviewList(TGroupPerson  tGroupPerson, SearchVo searchVo, PageVo pageVo);
+
+    /**
+     * 功能描述：实现台账人员分页查询
+     * @param tGroupPerson 需要模糊查询的信息
+     * @param searchVo 排序参数
+     * @param pageVo 分页参数
+     * @return 返回获取结果
+     */
+
+    public IPage<TGroupPerson> queryNoCheckProjectLedgerPersonList(TGroupPerson  tGroupPerson, SearchVo searchVo, PageVo pageVo);
 
     /**
      * 功能描述：实现分页查询
@@ -133,6 +168,13 @@ public interface ITGroupPersonService extends IService<TGroupPerson> {
 
     List<TGroupPerson> queryPersonDataListByOrderId(String orderId);
 
+    /**
+     * 功能描述：根据单位名称查询批量导出的数据
+     * @param personId
+     * @return 返回获取结果
+     */
+    List<TGroupPerson> queryPersonDataListByUnitName(String personId,Integer isRecheck);
+
 
     /**
      * 根据ids获取团检人员关联信息
@@ -140,6 +182,19 @@ public interface ITGroupPersonService extends IService<TGroupPerson> {
      * @return
      */
     List<Map<String, Object>> getGroupPersonInfoByIds(List<String> ids);
+
+    /**
+     * 根据ids获取团检人员序号
+     * @return
+     */
+    List<TInspectionRecord> getGroupPersonOrderNumByIds();
+
+    /**
+     * 根据ids获取团检人员关联信息
+     * @param ids
+     * @return
+     */
+    List<Map<String, Object>> getGroupPersonInfoByIdsTypeStatus(List<String> ids);
 
     /**
      * 查询对应科室的复查人员
@@ -157,4 +212,14 @@ public interface ITGroupPersonService extends IService<TGroupPerson> {
     Integer updatewAutograph();
 
     TGroupPerson queryTGroupPersonAndResultApp(TGroupPerson tGroupPerson);
+
+    List<TGroupPerson> getByPersonIdList(String[] ids);
+
+    /**
+     * 校验体检人员是否每天是否重复提交
+     * @param idCard
+     * @param checkDate
+     * @return
+     */
+    Boolean getGroupPersonRepeatCommit(String idCard, String checkDate);
 }

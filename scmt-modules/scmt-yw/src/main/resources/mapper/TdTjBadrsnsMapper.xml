@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scmt.healthy.mapper.TdTjBadrsnsMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.scmt.healthy.entity.TdTjBadrsns">
+        <result column="ID" property="id" />
+        <result column="BADRSN_CODE" property="badrsnCode" />
+        <result column="EXAM_CONCLUSION_CODE" property="examConclusionCode" />
+        <result column="YSZYB_CODE" property="yszybCode" />
+        <result column="ZYJJZ_CODE" property="zyjjzCode" />
+        <result column="QTJB_NAME" property="qtjbName" />
+        <result column="OTHER_BADRSN" property="otherBadrsn" />
+        <result column="FK_BHK_ID" property="fkBhkId" />
+        <result column="create_time" property="createTime" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        ID, BADRSN_CODE, EXAM_CONCLUSION_CODE, YSZYB_CODE, ZYJJZ_CODE, QTJB_NAME, OTHER_BADRSN, FK_BHK_ID, create_time
+    </sql>
+
+<!--    selectListByIds-->
+    <select id="selectListByIds" resultType="com.scmt.healthy.entity.TdTjBadrsns">
+        SELECT
+        td_tj_badrsns.*
+        FROM
+        td_tj_badrsns
+        where
+        td_tj_badrsns.del_flag != 1 and
+        <if test="ids != null and ids.size > 0">
+            FK_BHK_ID IN
+            <foreach collection="ids" item="item" separator="," open="(" close=")">
+                #{item}
+            </foreach>
+        </if>
+    </select>
+
+</mapper>

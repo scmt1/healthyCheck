@@ -34,4 +34,5 @@ public interface DepartmentService extends ScmtBaseService<Department, String> {
      * @return
      */
     List<Department> findByTitleLikeOrderBySortOrder(String title, Boolean openDataFilter);
+
 }

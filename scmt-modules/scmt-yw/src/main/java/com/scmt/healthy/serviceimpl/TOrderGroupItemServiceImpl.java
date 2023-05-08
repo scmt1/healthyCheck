@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
+import com.scmt.healthy.common.SocketConfig;
 import com.scmt.healthy.entity.TOrderGroupItem;
 import com.scmt.healthy.entity.TOrderGroupItemProject;
 import com.scmt.healthy.service.ITOrderGroupItemService;
@@ -28,6 +29,9 @@ public class TOrderGroupItemServiceImpl extends ServiceImpl<TOrderGroupItemMappe
 	@Autowired
 	@SuppressWarnings("SpringJavaAutowiringInspection")
 	private TOrderGroupItemMapper tOrderGroupItemMapper;
+
+	@Autowired
+	public SocketConfig socketConfig;
 
 	@Override
 	public IPage<TOrderGroupItem> queryTOrderGroupItemListByPage(TOrderGroupItem  tOrderGroupItem, SearchVo searchVo, PageVo pageVo){
@@ -76,8 +80,13 @@ public class TOrderGroupItemServiceImpl extends ServiceImpl<TOrderGroupItemMappe
 	}
 
 	@Override
+	public Integer getAllCheckCountReview(String personId, String groupId) {
+		return tOrderGroupItemMapper.getAllCheckCountReview(personId, groupId);
+	}
+
+	@Override
 	public Integer getDepartResultCount(String personId, String groupId) {
-		return tOrderGroupItemMapper.getDepartResultCount(personId,groupId);
+		return tOrderGroupItemMapper.getDepartResultCount(personId,groupId,socketConfig.getGiveUp());
 	}
 
 	@Override

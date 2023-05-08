@@ -44,6 +44,13 @@ public class TGroupUnitServiceImpl extends ServiceImpl<TGroupUnitMapper, TGroupU
 		if (tGroupUnit !=null) {
 			queryWrapper = LikeAllFeild(tGroupUnit,searchVo);
 		}
+		if(pageVo != null && pageVo.getSort()!=null && pageVo.getOrder()!=null){//排序设置
+			if(pageVo.getOrder().contains("desc")){
+				queryWrapper.orderByDesc(pageVo.getSort()).orderByAsc("name");
+			}else if(pageVo.getOrder().contains("asc")){
+				queryWrapper.orderByAsc(pageVo.getSort()).orderByAsc("name");
+			}
+		}
 		IPage<TGroupUnit> result = tGroupUnitMapper.selectPage(pageData, queryWrapper);
 		return  result;
 	}

@@ -1,5 +1,7 @@
 package com.scmt.healthy.mapper;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Constants;
 import com.scmt.healthy.entity.TBaseProject;
 import com.scmt.healthy.entity.TPortfolioProject;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
@@ -26,4 +28,6 @@ public interface TPortfolioProjectMapper extends BaseMapper<TPortfolioProject> {
      * @return
      */
     TPortfolioProject selectTSectionOfficeById(@Param(value = "id")String id );
+
+    List<TPortfolioProject> getProjectData(@Param(Constants.WRAPPER) QueryWrapper<TPortfolioProject> queryWrapper);
 }

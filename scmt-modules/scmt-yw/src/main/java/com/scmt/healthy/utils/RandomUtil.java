@@ -21,4 +21,18 @@ public class RandomUtil {
         }
         return new String(nonceChars);
     }
+
+    /**
+     * 获取长度为 13 的随机数字
+     *
+     * @return 随机数字
+     */
+    public static String getThirteenstr() {
+        char[] nonceChars = new char[13];  //指定长度，自己可以设置
+
+        for (int index = 0; index < nonceChars.length; ++index) {
+            nonceChars[index] = SYMBOLS.charAt(RANDOM.nextInt(SYMBOLS.length()));
+        }
+        return new String(nonceChars);
+    }
 }

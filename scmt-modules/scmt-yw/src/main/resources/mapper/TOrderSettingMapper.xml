@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scmt.healthy.mapper.TOrderSettingMapper">
+
+
+    <select id="getOrderInfoByOrgIdAndMonth" parameterType="String" resultType="map">
+        SELECT
+            t_order_setting.id,
+            t_order_setting.order_date AS orderDate,
+            t_order_setting.number,
+            t_order_setting.reservations,
+            t_order_setting.check_org_id AS checkOrgId
+        FROM
+	        t_order_setting
+        WHERE
+            t_order_setting.check_org_id = #{CheckOrgId}
+        AND t_order_setting.order_date LIKE CONCAT('%',#{dateTime},'%')
+        AND t_order_setting.del_flag = 0;
+    </select>
+
+    <select id="getCountInfoByOrgIdAndYear" parameterType="String" resultType="map">
+        SELECT
+            SUM(t_order_setting.number) AS number,
+            SUM(t_order_setting.reservations) AS reservations,
+		    DATE_FORMAT(order_date,'%Y-%m') AS orderDate,
+		    t_order_setting.check_org_id AS checkOrgId
+        FROM
+	        t_order_setting
+        WHERE
+            t_order_setting.check_org_id = #{CheckOrgId}
+        AND t_order_setting.order_date LIKE CONCAT('%',#{dateTime},'%')
+        AND t_order_setting.del_flag = 0
+        GROUP BY DATE_FORMAT(order_date,'%m');
+    </select>
+
+    <select id="getAvailableTimeByOrgIdAndOrderDate" resultType="map">
+        SELECT
+            id,
+            DATE_FORMAT(order_date,'%Y-%m-%d') AS orderDate,
+            IF(reservations = number,'0','1') AS 'status',
+            check_org_id AS checkOrgId
+        FROM
+            t_order_setting
+        WHERE
+            DATE_FORMAT(order_date,'%Y-%m-%d') BETWEEN #{beginDate} AND #{endDate}
+        AND check_org_id = #{CheckOrgId}
+        AND del_flag = 0
+        ORDER BY DATE_FORMAT(order_date,'%Y-%m-%d');
+    </select>
+</mapper>

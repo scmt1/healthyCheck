@@ -22,6 +22,12 @@
         ${ew.customSqlSegment}
     </select>
 
+    <select id="querySummaryResultListReview" resultType="com.scmt.healthy.entity.TDepartItemResult">
+        select r.*,p.is_pass as isPass,p.person_name as personName,p.test_num as testNum from t_depart_item_result r
+        LEFT JOIN t_review_person p on p.id = r.person_id
+        ${ew.customSqlSegment}
+    </select>
+
     <select id="queryAllAbnormalItemResultList" resultType="com.scmt.healthy.entity.TDepartItemResult">
         SELECT r.* FROM t_depart_item_result r
         ${ew.customSqlSegment}
@@ -36,4 +42,5 @@
         SELECT * FROM t_depart_item_result
         where person_id = #{personId}
     </select>
+
 </mapper>

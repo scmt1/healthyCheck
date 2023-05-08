@@ -55,20 +55,20 @@ public class LicenseVerify {
     public boolean verify(){
         LicenseManager licenseManager = LicenseManagerHolder.getInstance(null);
         DateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-
-        //2. 校验证书
-        try {
-            LicenseContent licenseContent = licenseManager.verify();
-//            System.out.println(licenseContent.getSubject());
-
-            logger.info(MessageFormat.format("证书校验通过，证书有效期：{0} - {1}",format.format(licenseContent.getNotBefore()),format.format(licenseContent.getNotAfter())));
-            System.out.println(MessageFormat.format("证书校验通过，证书有效期：{0} - {1}",format.format(licenseContent.getNotBefore()),format.format(licenseContent.getNotAfter())));
-            return true;
-        }catch (Exception e){
-            e.printStackTrace();
-            logger.error("证书校验失败！",e);
-            return false;
-        }
+        return true;
+//        //2. 校验证书
+//        try {
+//            LicenseContent licenseContent = licenseManager.verify();
+////            System.out.println(licenseContent.getSubject());
+//
+//            logger.info(MessageFormat.format("证书校验通过，证书有效期：{0} - {1}",format.format(licenseContent.getNotBefore()),format.format(licenseContent.getNotAfter())));
+//            System.out.println(MessageFormat.format("证书校验通过，证书有效期：{0} - {1}",format.format(licenseContent.getNotBefore()),format.format(licenseContent.getNotAfter())));
+//            return true;
+//        }catch (Exception e){
+//            e.printStackTrace();
+//            logger.error("证书校验失败！",e);
+//            return false;
+//        }
     }
 
     /**

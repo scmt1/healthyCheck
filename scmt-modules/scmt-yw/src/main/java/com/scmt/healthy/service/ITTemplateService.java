@@ -74,4 +74,26 @@ public interface ITTemplateService extends IService<TTemplate> {
 	 * @return
 	 */
 	public List<TDepartItemResult>  getDepartItemResultList(String personId,String groupId);
+
+	/**
+	 * 功能描述： 根据复查用户id集合查询分项组合项目结果
+	 * @param personIds 复查用户id集合
+	 * @return List<TDepartResult>
+	 */
+	public List<TDepartItemResult>  getDepartItemResultListByReviewPersonIds( List<String> personIds,List<String> groupIds);
+
+
+	/**
+	 * 功能描述： 根据复查用户id 集合查询组合项目结果
+	 * @param personIds 复查用户id集合
+	 * @return List<TDepartResult>
+	 */
+	public List<TDepartResult> getDepartResultListByReviewPersonIds( List<String> personIds,List<String> groupIds);
+
+	/**
+	 * 根据用户id集合 查询 人员第一次Id集合
+	 * @param personIds
+	 * @return
+	 */
+	List<String> getPersonIdsByReviewPersonIds (List<String> personIds);
 }

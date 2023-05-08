@@ -27,8 +27,11 @@ import io.swagger.annotations.ApiParam;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheConfig;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+
+import javax.persistence.criteria.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -87,7 +90,26 @@ public class DepartmentController {
                 new GsonBuilder().registerTypeAdapterFactory(HibernateProxyTypeAdapter.FACTORY).create().toJson(list), 15L, TimeUnit.DAYS);
         return new ResultUtil<List<Department>>().setData(list);
     }
+    @RequestMapping(value = "/getAllDepartment", method = RequestMethod.GET)
+    @ApiOperation(value = "通过parentId获取")
+    @SystemLog(description = "通过parentId获取", type = LogType.OPERATION)
+    public Result<List<Department>> getAllDepartment() {
 
+        //默认查询 父Id不等于0的
+        Specification<Department> e = new Specification<Department>() {
+            @Override
+            public Predicate toPredicate(Root<Department> root, CriteriaQuery<?> query, CriteriaBuilder criteriaBuilder) {
+                // 取需要查询的对象属性
+                Path<Object> custName = root.get("parentId");
+                // 进行精准的匹配，
+                // 第一个参数：需要比较的属性（path对象）,第二个参数：当前需要比较的取值
+                Predicate predicate = criteriaBuilder.notEqual(custName, "0");
+                return predicate;
+            }
+        };
+        List<Department> list = departmentService.findAll(e);
+        return new ResultUtil<List<Department>>().setData(list);
+    }
     @RequestMapping(value = "/add", method = RequestMethod.POST)
     @ApiOperation(value = "添加")
     @SystemLog(description = "添加", type = LogType.OPERATION)

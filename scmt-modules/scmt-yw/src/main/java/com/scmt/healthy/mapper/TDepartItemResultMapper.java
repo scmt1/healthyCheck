@@ -24,6 +24,8 @@ public interface TDepartItemResultMapper extends BaseMapper<TDepartItemResult> {
 
     IPage<TDepartItemResult> querySummaryResultList(@Param(Constants.WRAPPER) QueryWrapper<TDepartItemResult> queryWrapper, @Param("page") Page page);
 
+    IPage<TDepartItemResult> querySummaryResultListReview(@Param(Constants.WRAPPER) QueryWrapper<TDepartItemResult> queryWrapper, @Param("page") Page page);
+
     List<TDepartItemResult> queryAllAbnormalItemResultList(@Param(Constants.WRAPPER) QueryWrapper<TDepartItemResult> queryWrapper);
 
     List<TDepartItemResult> getAbnormalResultList(@Param("personId") String personId);

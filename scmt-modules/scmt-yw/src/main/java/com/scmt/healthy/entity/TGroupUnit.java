@@ -1,10 +1,12 @@
 package com.scmt.healthy.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import java.io.Serializable;
 import java.sql.Blob;
 import java.util.Date;
+import java.util.List;
 
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -38,6 +40,12 @@ public class TGroupUnit implements Serializable {
 
     @ApiModelProperty(value = "统一社和信用代码")
     private String uscc;
+
+    @ApiModelProperty(value = "上级单位社会信用代码")
+    private String upperInstituttonCode;
+
+    @ApiModelProperty(value = "用工单位是否分支机构 1是0否")
+    private String ifSubOrg;
 
     @ApiModelProperty(value = "法人姓名")
     private String legalPerson;
@@ -176,6 +184,28 @@ public class TGroupUnit implements Serializable {
 
     @ApiModelProperty(value = "体检类型")
     private String physicalType;
+
+    @ApiModelProperty(value = "统一社和信用代码(用工单位)")
+    private String creditCodeEmp;
+
+    @ApiModelProperty(value = "单位名称(用工单位)")
+    private String crptNameEmp;
+
+    @ApiModelProperty(value = "行业类型编码(用工单位)")
+    private String indusTypeCodeEmp;
+
+    @ApiModelProperty(value = "经济类型编码(用工单位)")
+    private String economyCodeEmp;
+
+    @ApiModelProperty(value = "企业规模编码(用工单位)")
+    private String crptSizeCodeEmp;
+
+    @ApiModelProperty(value = "所属地区编码(用工单位)")
+    private String zoneCodeEmp;
+
+    @ApiModelProperty(value = "检测信息")
+    @TableField(exist = false)
+    private List<TTestRecord> testRecordData;
 
 
 }

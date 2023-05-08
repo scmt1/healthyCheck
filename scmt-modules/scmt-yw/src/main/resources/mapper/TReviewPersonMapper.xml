@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scmt.healthy.mapper.TReviewPersonMapper">
+
+    <select id="getReviewProjectPerson" resultType="com.scmt.healthy.entity.TReviewPerson">
+          SELECT
+            t_review_person.id,
+            t_review_person.first_person_id,
+            t_review_person.test_num,
+            t_review_person.person_name,
+            t_group_person.physical_type,
+            t_group_person.sex,
+            t_group_person.age,
+            t_group_person.mobile,
+            t_review_person.id_card,
+            t_review_person.dept,
+            t_review_person.is_pass,
+            t_group_person.work_state_code,
+            t_group_person.work_state_text,
+            t_group_person.hazard_factors,
+            t_group_person.hazard_factors_text,
+            t_review_person.regist_date,
+            t_review_person.delete_id,
+            t_review_project.portfolio_project_id
+        FROM
+            t_review_person
+            LEFT JOIN t_group_person ON t_group_person.id = t_review_person.first_person_id
+            LEFT JOIN t_review_project on t_review_project.person_id =  t_review_person.id
+        ${ew.customSqlSegment}
+    </select>
+    <select id="getReviewPersonById" resultType="com.scmt.healthy.entity.TReviewPerson">
+         SELECT
+            t_review_person.id,
+            t_review_person.first_person_id,
+            t_review_person.test_num,
+            t_review_person.person_name,
+            t_group_person.physical_type,
+            t_group_person.sex AS sex,
+            t_group_person.age AS age,
+            t_group_person.mobile AS mobile,
+            t_review_person.id_card,
+            t_review_person.dept,
+            t_review_person.is_pass,
+            t_group_person.work_state_code,
+            t_group_person.work_state_text,
+            t_group_person.hazard_factors,
+            t_group_person.hazard_factors_text,
+            t_review_person.regist_date,
+            t_review_person.delete_id
+        FROM
+            t_review_person
+            LEFT JOIN t_group_person ON t_group_person.id = t_review_person.first_person_id
+        ${ew.customSqlSegment}
+    </select>
+</mapper>

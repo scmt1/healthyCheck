@@ -128,6 +128,24 @@ public class TTemplateServiceImpl extends ServiceImpl<TTemplateMapper, TTemplate
 		return list;
 	}
 
+	@Override
+	public List<TDepartItemResult> getDepartItemResultListByReviewPersonIds(List<String> personIds,List<String> groupIds) {
+		List<String> personIdsByReviewPersonIds = tTemplateMapper.getPersonIdsByReviewPersonIds(personIds);
+		List<TDepartItemResult> list = tTemplateMapper.getDepartItemResultListByPersonIds(personIdsByReviewPersonIds,groupIds);
+		return list;
+	}
+
+	@Override
+	public List<TDepartResult> getDepartResultListByReviewPersonIds(List<String> personIds,List<String> groupIds) {
+		List<String> personIdsByReviewPersonIds = tTemplateMapper.getPersonIdsByReviewPersonIds(personIds);
+		List<TDepartResult> list = tTemplateMapper.getDepartResultListByPersonIds(personIdsByReviewPersonIds,groupIds);
+		return list;
+	}
+	@Override
+	public List<String> getPersonIdsByReviewPersonIds (List<String> personIds){
+		List<String> list = tTemplateMapper.getPersonIdsByReviewPersonIds(personIds);
+		return list;
+	}
 	/**
 	* 功能描述：构建模糊查询
 	* @param tTemplate 需要模糊查询的信息

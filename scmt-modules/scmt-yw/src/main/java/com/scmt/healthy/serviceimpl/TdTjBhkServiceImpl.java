@@ -198,8 +198,8 @@ public class TdTjBhkServiceImpl extends ServiceImpl<TdTjBhkMapper, TdTjBhk> impl
         if (tdTjBhk.getBhkrst() != null) {
             queryWrapper.lambda().and(i -> i.eq(TdTjBhk::getBhkrst, tdTjBhk.getBhkrst()));
         }
-        if (tdTjBhk.getMhkadv() != null) {
-            queryWrapper.lambda().and(i -> i.eq(TdTjBhk::getMhkadv, tdTjBhk.getMhkadv()));
+        if (tdTjBhk.getMhkadv() != null && StringUtils.isNotBlank(tdTjBhk.getMhkadv())) {
+            queryWrapper.lambda().and(i -> i.like(TdTjBhk::getMhkadv, tdTjBhk.getMhkadv()));
         }
         if (StringUtils.isNotBlank(tdTjBhk.getVerdict())) {
             queryWrapper.lambda().and(i -> i.eq(TdTjBhk::getVerdict, tdTjBhk.getVerdict()));
@@ -254,6 +254,9 @@ public class TdTjBhkServiceImpl extends ServiceImpl<TdTjBhkMapper, TdTjBhk> impl
         }
         if (StringUtils.isNotBlank(tdTjBhk.getZoneCodeEmp())) {
             queryWrapper.lambda().and(i -> i.eq(TdTjBhk::getZoneCodeEmp, tdTjBhk.getZoneCodeEmp()));
+        }
+        if (StringUtils.isNotBlank(tdTjBhk.getOrderCode())) {
+            queryWrapper.lambda().and(i -> i.eq(TdTjBhk::getOrderCode, tdTjBhk.getOrderCode()));
         }
         if (tdTjBhk.getFlag() != null) {
             queryWrapper.lambda().and(i -> i.eq(TdTjBhk::getFlag, tdTjBhk.getFlag()));

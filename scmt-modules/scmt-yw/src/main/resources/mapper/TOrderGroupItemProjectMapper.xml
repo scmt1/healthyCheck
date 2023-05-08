@@ -12,8 +12,9 @@
 
     <select id="getOrderGroupITemProjectByReview" resultType="com.scmt.healthy.entity.TOrderGroupItemProject">
         SELECT * FROM `t_order_group_item_project` WHERE t_order_group_item_id = (SELECT id FROM t_order_group_item WHERE portfolio_project_id = #{portfolioId} AND
-        group_id = #{groupId} UNION ALL SELECT id FROM t_review_project WHERE portfolio_project_id = #{portfolioId} AND
-        group_id = #{groupId}  limit 1) AND del_flag = 0
+        group_id = #{groupId} UNION ALL (SELECT id FROM t_review_project WHERE portfolio_project_id = #{portfolioId} AND
+        group_id = #{groupId} and EXISTS( SELECT id FROM t_order_group_item_project WHERE t_order_group_item_project.t_order_group_item_id =t_review_project.id )
+        order by t_review_project.create_time asc  limit 1) LIMIT 1) AND del_flag = 0
         <if test="officeId != null and officeId.size > 0">
             And office_id IN
             <foreach collection="officeId" item="item" open="(" separator="," close=")" index="index">

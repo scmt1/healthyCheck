@@ -223,7 +223,7 @@ public class TComboItemController {
             QueryWrapper<TComboItem> queryWrapper = new QueryWrapper<>();
             queryWrapper.in("combo_id", Arrays.asList(split));
             queryWrapper.groupBy("portfolio_project_id");
-            queryWrapper.orderByAsc("name");
+            queryWrapper.orderByAsc("t_portfolio_project.order_num").orderByAsc("name");
             List<TComboItem> list = tComboItemService.listByComboIds(queryWrapper);
             /*筛掉重复的ALT检查项目*/
             List<TComboItem> list1 = list.stream().filter(ii -> ii.getName().contains("血清ALT")).collect(Collectors.toList());

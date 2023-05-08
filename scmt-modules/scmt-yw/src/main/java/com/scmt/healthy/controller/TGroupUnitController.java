@@ -13,11 +13,8 @@ import com.scmt.core.common.utils.SecurityUtil;
 import com.scmt.core.common.vo.PageVo;
 import com.scmt.core.common.vo.Result;
 import com.scmt.core.common.vo.SearchVo;
-import com.scmt.healthy.entity.TGroupOrder;
-import com.scmt.healthy.entity.TGroupPerson;
-import com.scmt.healthy.service.ITGroupOrderService;
-import com.scmt.healthy.service.ITGroupPersonService;
-import com.scmt.healthy.service.ITGroupUnitService;
+import com.scmt.healthy.entity.*;
+import com.scmt.healthy.service.*;
 
 import javax.servlet.http.HttpServletResponse;
 import javax.sql.rowset.serial.SerialBlob;
@@ -32,7 +29,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.beans.factory.annotation.Autowired;
-import com.scmt.healthy.entity.TGroupUnit;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.scmt.core.common.enums.LogType;
 import io.swagger.annotations.Api;
@@ -56,6 +52,12 @@ public class TGroupUnitController {
     private ITGroupOrderService tGroupOrderService;
     @Autowired
     private SecurityUtil securityUtil;
+
+    @Autowired
+    private TTestRecordService tTestRecordService;
+
+    @Autowired
+    private ITReviewPersonService itReviewPersonService;
 
     /**
      * 功能描述：新增团检单位数据
@@ -92,7 +94,22 @@ public class TGroupUnitController {
             }
             boolean res = tGroupUnitService.save(tGroupUnit);
             if (res) {
-                return ResultUtil.data(res, "保存成功");
+                TGroupUnit tGroupUnit1 = tGroupUnitService.getOne(queryWrapper);
+                //更新检测信息
+                QueryWrapper<TTestRecord> tTestRecordQueryWrapper = new QueryWrapper<>();
+                tTestRecordQueryWrapper.eq("unit_id",tGroupUnit1.getId());
+                tTestRecordService.remove(tTestRecordQueryWrapper);//清除旧数据
+                for(TTestRecord tTestRecord : tGroupUnit.getTestRecordData()){
+                    tTestRecord.setUnitId(tGroupUnit1.getId());
+                    tTestRecord.setCreateTime(new Date());
+                    tTestRecord.setCreateId(securityUtil.getCurrUser().getId());
+                }
+                boolean res1 = tTestRecordService.saveBatch(tGroupUnit.getTestRecordData());//添加
+                if(res1){
+                    return ResultUtil.data(res1, "保存成功");
+                }else{
+                    return ResultUtil.data(res1, "保存失败");
+                }
             } else {
                 return ResultUtil.data(res, "保存失败");
             }
@@ -139,11 +156,32 @@ public class TGroupUnitController {
                 Blob blob = new SerialBlob(imgFile.getBytes());
                 tGroupUnit.setAttachment(blob);
             }
-            boolean res = tGroupUnitService.updateById(tGroupUnit);
+            boolean res = false;
+            //查询原本的单位信息
+            TGroupUnit tGroupUnitOld = tGroupUnitService.getById(tGroupUnit.getId());
+            if(tGroupUnit.getName()!=null && StringUtils.isNotBlank(tGroupUnit.getName())){
+                /*//查询原本的单位信息
+                TGroupUnit tGroupUnitOld = tGroupUnitService.getById(tGroupUnit.getId());*/
+                //若名称一样则批量修改
+                QueryWrapper<TGroupUnit> queryWrapper1 = new QueryWrapper<>();
+                queryWrapper1.eq("del_flag",0);
+                queryWrapper1.eq("name",tGroupUnitOld.getName());
+                queryWrapper1.eq("physical_type",tGroupUnit.getPhysicalType());
+                tGroupUnit.setId(null);
+                res = tGroupUnitService.update(tGroupUnit,queryWrapper1);
+            }else{
+                //根据id修改
+                res = tGroupUnitService.updateById(tGroupUnit);
+            }
             if (res) {
                 //更新订单 dept字段
                 QueryWrapper<TGroupOrder> groupOrderQueryWrapper = new QueryWrapper<>();
-                groupOrderQueryWrapper.eq("group_unit_id",tGroupUnit.getId());
+                if(tGroupUnit.getName()!=null && StringUtils.isNotBlank(tGroupUnit.getName())){
+                    groupOrderQueryWrapper.eq("group_unit_name",tGroupUnitOld.getName());
+                }else{
+                    groupOrderQueryWrapper.eq("group_unit_id",tGroupUnit.getId());
+                }
+                groupOrderQueryWrapper.eq("physical_type",tGroupUnit.getPhysicalType());
                 groupOrderQueryWrapper.eq("del_flag",0);
                 /*List<TGroupOrder> tGroupOrderList = tGroupOrderService.list(groupOrderQueryWrapper);
                 for(TGroupOrder tGroupOrder : tGroupOrderList){
@@ -155,7 +193,12 @@ public class TGroupUnitController {
                 tGroupOrderService.update(groupOrder,groupOrderQueryWrapper);
                 //更新人员 dept 字段
                 QueryWrapper<TGroupPerson> personQueryWrapper = new QueryWrapper<>();
-                personQueryWrapper.eq("unit_id",tGroupUnit.getId());
+                if(tGroupUnit.getName()!=null && StringUtils.isNotBlank(tGroupUnit.getName())){
+                    personQueryWrapper.eq("dept",tGroupUnitOld.getName());
+                }else{
+                    personQueryWrapper.eq("unit_id",tGroupUnit.getId());
+                }
+                personQueryWrapper.eq("physical_type",tGroupUnit.getPhysicalType());
                 personQueryWrapper.eq("del_flag",0);
                 /*List<TGroupPerson> tGroupPersonList = tGroupPersonService.list(personQueryWrapper);
                 for(TGroupPerson tGroupPerson : tGroupPersonList){
@@ -165,6 +208,29 @@ public class TGroupUnitController {
                 TGroupPerson tGroupPerson= new TGroupPerson();
                 tGroupPerson.setDept(tGroupUnit.getName());
                 tGroupPersonService.update(tGroupPerson,personQueryWrapper);
+
+                //更新复查人员 dept 字段
+                QueryWrapper<TReviewPerson> tReviewPersonQueryWrapper = new QueryWrapper<>();
+                if(tGroupUnit.getName()!=null && StringUtils.isNotBlank(tGroupUnit.getName())){
+                    tReviewPersonQueryWrapper.eq("dept",tGroupUnitOld.getName());
+                }else{
+                    tReviewPersonQueryWrapper.eq("unit_id",tGroupUnit.getId());
+                }
+                tReviewPersonQueryWrapper.eq("physical_type",tGroupUnit.getPhysicalType());
+                tReviewPersonQueryWrapper.eq("del_flag",0);
+                TReviewPerson tReviewPerson= new TReviewPerson();
+                tReviewPerson.setDept(tGroupUnit.getName());
+                itReviewPersonService.update(tReviewPerson,tReviewPersonQueryWrapper);
+
+                //更新检测信息
+                QueryWrapper<TTestRecord> tTestRecordQueryWrapper = new QueryWrapper<>();
+                tTestRecordQueryWrapper.eq("unit_id",tGroupUnit.getId());
+                tTestRecordService.remove(tTestRecordQueryWrapper);//清除旧数据
+                for(TTestRecord tTestRecord : tGroupUnit.getTestRecordData()){
+                    tTestRecord.setCreateTime(new Date());
+                    tTestRecord.setCreateId(securityUtil.getCurrUser().getId());
+                }
+                tTestRecordService.saveBatch(tGroupUnit.getTestRecordData());//添加
                 return ResultUtil.data(res, "修改成功");
             } else {
                 return ResultUtil.error("修改失败");
@@ -279,6 +345,25 @@ public class TGroupUnitController {
         }
     }
 
+    /**
+     *  查询全部团检单位数据（根据名字去重）
+     * @return
+     */
+    @SystemLog(description = "查询全部团检单位数据（根据名字去重）", type = LogType.OPERATION)
+    @ApiOperation("查询全部团检单位数据（根据名字去重）")
+    @GetMapping("queryAllTGroupUnitListGroupName")
+    public Result<Object> queryAllTGroupUnitListGroupName() {
+        try {
+            QueryWrapper<TGroupUnit> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("del_flag", 0);
+            queryWrapper.groupBy("name");
+            List<TGroupUnit> list = tGroupUnitService.list(queryWrapper);
+            return ResultUtil.data(list);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResultUtil.error("查询异常:" + e.getMessage());
+        }
+    }
 
     /**
      * 功能描述：导出数据

@@ -42,6 +42,8 @@ public interface ITOrderGroupService extends IService<TOrderGroup> {
 
     Map<String, Object> queryCheckProjectAndHazardFactors(String groupOrderId);
 
+    Map<String, Object> queryCheckProjectAndHazardFactorsHealthy(String groupOrderId);
+
 	List<Map<String, Object>> queryCheckProjectAndHazardFactorsList(String groupOrderId);
 
 	List<Map<String, Object>> queryCheckProjectAndHazardFactorsComboList(List<String> comboIdList);

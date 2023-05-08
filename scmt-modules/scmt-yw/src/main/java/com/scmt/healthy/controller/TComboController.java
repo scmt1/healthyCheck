@@ -1,46 +1,41 @@
 package com.scmt.healthy.controller;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.core.toolkit.StringUtils;
+import com.scmt.core.common.annotation.SystemLog;
+import com.scmt.core.common.constant.MessageConstant;
+import com.scmt.core.common.enums.LogType;
+import com.scmt.core.common.utils.NameUtil;
+import com.scmt.core.common.utils.ResultUtil;
+import com.scmt.core.common.utils.SecurityUtil;
+import com.scmt.core.common.vo.PageVo;
+import com.scmt.core.common.vo.Result;
+import com.scmt.core.common.vo.SearchVo;
+import com.scmt.core.entity.User;
+import com.scmt.core.service.UserService;
+import com.scmt.healthy.entity.*;
+import com.scmt.healthy.service.*;
+import com.scmt.healthy.utils.BASE64DecodedMultipartFile;
+import com.scmt.healthy.utils.UploadFileUtils;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import org.apache.ibatis.annotations.Param;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import javax.servlet.http.HttpServletResponse;
+import javax.transaction.Transactional;
+import javax.validation.constraints.Pattern;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.scmt.core.common.utils.NameUtil;
-import com.scmt.core.common.utils.ResultUtil;
-import com.scmt.core.common.utils.SecurityUtil;
-import com.scmt.core.entity.User;
-import com.scmt.core.service.UserService;
-import com.scmt.healthy.entity.*;
-import com.scmt.healthy.service.*;
-
-import javax.servlet.http.HttpServletResponse;
-import javax.transaction.Transactional;
-import javax.validation.constraints.Pattern;
-
-import com.scmt.healthy.utils.BASE64DecodedMultipartFile;
-import com.scmt.healthy.utils.UploadFileUtils;
-import org.apache.ibatis.annotations.Param;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.beans.factory.annotation.Autowired;
-import com.scmt.core.common.vo.PageVo;
-import com.scmt.core.common.vo.Result;
-import com.scmt.core.common.vo.SearchVo;
-import com.scmt.core.common.annotation.SystemLog;
-import com.baomidou.mybatisplus.core.toolkit.StringUtils;
-import com.scmt.core.common.enums.LogType;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import org.springframework.web.multipart.MultipartFile;
 
 /**
  * @author
@@ -87,6 +82,7 @@ public class TComboController {
     @SystemLog(description = "新增体检套餐数据", type = LogType.OPERATION)
     @ApiOperation("新增体检套餐数据")
     @PostMapping("addTCombo")
+    @Transactional(rollbackOn = { Exception.class })
     public Result<Object> addTCombo(@RequestBody String form) {
         try {
             if (!StringUtils.isNotBlank(form)) {
@@ -127,13 +123,21 @@ public class TComboController {
                     for (TComboItem comboItem : comboItemList) {
                         long count = list.stream().filter(i -> i.getPortfolioProjectId().equals(comboItem.getPortfolioProjectId())).count();
                         if(count == 0) {
+                            //手工回滚异常
+                            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
                             return ResultUtil.error(comboItem.getName()+"未绑定基础项目，保存失败！");
                         }
                         comboItem.setId(UUID.randomUUID().toString().replaceAll("-", ""));
                         comboItem.setComboId(tCombo.getId());
                         comboItem.setProjectType(1);
                     }
-                    comboItemService.saveBatch(comboItemList);
+                    //添加套餐项目
+                    boolean b = comboItemService.saveBatch(tCombo.getComboItemList());
+                    if(!b){
+                        //手工回滚异常
+                        TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                        return ResultUtil.error("添加套餐项目异常，请联系管理员！保存失败！");
+                    }
                 }
                 return ResultUtil.data(res, "保存成功");
             } else {
@@ -141,6 +145,8 @@ public class TComboController {
             }
         } catch (Exception e) {
             e.printStackTrace();
+            //手工回滚异常
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             return ResultUtil.error("保存异常:" + e.getMessage());
         }
     }
@@ -153,6 +159,7 @@ public class TComboController {
      */
     @SystemLog(description = "更新体检套餐数据", type = LogType.OPERATION)
     @ApiOperation("更新体检套餐数据")
+    @Transactional(rollbackOn = { Exception.class })
     @PostMapping("updateTCombo")
     public Result<Object> updateTCombo(@RequestBody String form) {
         try {
@@ -175,7 +182,7 @@ public class TComboController {
             tComboQueryWrapper.orderByDesc("create_time");
             tComboQueryWrapper.last("LIMIT 1");
             TCombo combo = tComboService.getOne(tComboQueryWrapper);
-            if (combo != null && !tCombo.getId().equals(combo.getId())) {
+            if (combo != null && !tCombo.getId().equals(combo.getId()) && tCombo.getType().equals(combo.getType())) {
                 return ResultUtil.error("套餐名称重复，保存失败");
             }
             tCombo.setUpdateId(securityUtil.getCurrUser().getId());
@@ -201,6 +208,8 @@ public class TComboController {
                     for (TComboItem comboItem : comboItemList) {
                         long count = list.stream().filter(i -> i.getPortfolioProjectId().equals(comboItem.getPortfolioProjectId())).count();
                         if(count == 0) {
+                            //手工回滚异常
+                            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
                             return ResultUtil.error(comboItem.getName()+"未绑定基础项目，保存失败！");
                         }
                         comboItem.setId(UUID.randomUUID().toString().replaceAll("-", ""));
@@ -210,7 +219,12 @@ public class TComboController {
                         comboItem.setCreateId(securityUtil.getCurrUser().getId());
                     }
                     //添加套餐项目
-                    comboItemService.saveBatch(tCombo.getComboItemList());
+                    boolean b = comboItemService.saveBatch(tCombo.getComboItemList());
+                    if(!b){
+                        //手工回滚异常
+                        TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                        return ResultUtil.error("添加套餐项目异常，请联系管理员！保存失败！");
+                    }
                 }
                 return ResultUtil.data(res, "修改成功");
             } else {
@@ -218,6 +232,8 @@ public class TComboController {
             }
         } catch (Exception e) {
             e.printStackTrace();
+            //手工回滚异常
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             return ResultUtil.error("保存异常:" + e.getMessage());
         }
     }
@@ -339,6 +355,21 @@ public class TComboController {
         } catch (Exception e) {
             e.printStackTrace();
             return ResultUtil.error("查询异常:" + e.getMessage());
+        }
+    }
+
+    @ApiOperation("通过机构id分页查询对应套餐的信息列表")
+    @GetMapping("getComboListByOrgId")
+    public Result<Object> getComboListByPage(TCombo tCombo,SearchVo searchVo, PageVo pageVo,String checkOrgId){
+        if(checkOrgId == null){
+            return ResultUtil.error(MessageConstant.PARAMETER_IS_NULL);
+        }
+        try {
+            IPage<TCombo> list = tComboService.getComboListInfoByPage(tCombo,searchVo,pageVo,checkOrgId);
+            return ResultUtil.data(list);
+        }catch (Exception e){
+            e.printStackTrace();
+            return ResultUtil.error(MessageConstant.QUERY_EXCEPTION+e.getMessage());
         }
     }
 
@@ -498,6 +529,33 @@ public class TComboController {
         }*/
         try {
             List<TCombo> res = tComboService.getTComboById(id);
+            if (res != null) {
+                return ResultUtil.data(res, "查询成功");
+            } else {
+                return ResultUtil.error("查询失败");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResultUtil.error("查询异常:" + e.getMessage());
+        }
+    }
+
+    /**
+     * 功能描述：根据主键来获取数据
+     *
+     * @param id 主键
+     * @return 返回获取结果
+     */
+    @SystemLog(description = "根据主键来获取体检套餐数据", type = LogType.OPERATION)
+    @ApiOperation("根据主键来获取体检套餐数据")
+    @GetMapping("getTComboPriceById")
+    public Result<Object> getTComboById(@RequestParam (value = "id" ,required = false) String id) {
+        System.out.println(id);
+        if (StringUtils.isBlank(id)) {
+            return ResultUtil.error("参数为空，请联系管理员！！");
+        }
+        try {
+            TCombo res = tComboService.getTCombo(id);
             if (res != null) {
                 return ResultUtil.data(res, "查询成功");
             } else {

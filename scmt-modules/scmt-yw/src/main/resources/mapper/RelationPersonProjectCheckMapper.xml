@@ -27,4 +27,18 @@
             </foreach>
         </if>
     </select>
+
+    <select id="getNoRegistProjectDataReview" resultType="com.scmt.healthy.entity.TOrderGroupItem">
+        SELECT office_id, id FROM t_review_project
+        WHERE group_id = (SELECT group_id FROM t_review_person where id = #{personId})
+          AND not exists (SELECT order_group_item_id FROM relation_person_project_check WHERE (state = 2 OR state = 1) AND person_id = #{personId} AND
+        order_group_item_id =
+        t_review_project.id)
+        <if test="departmentIds != null and departmentIds.size() > 0">
+            and t_review_project.office_id IN
+            <foreach collection="departmentIds" item="item" open="(" separator="," close=")" index="index">
+                #{item}
+            </foreach>
+        </if>
+    </select>
 </mapper>

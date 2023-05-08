@@ -1,20 +1,18 @@
 package com.scmt.healthy.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
-import java.time.LocalDateTime;
-
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
-import java.io.Serializable;
-import java.util.Date;
-import java.util.List;
-
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.springframework.format.annotation.DateTimeFormat;
+
+import java.io.Serializable;
+import java.util.Date;
+import java.util.List;
 
 /**
  * <p>
@@ -106,6 +104,9 @@ public class TCombo implements Serializable {
     @ApiModelProperty(value = "职业禁忌症代码")
     private String occupationalTabooCode;
 
+    @ApiModelProperty(value = "体检机构id")
+    private String checkOrgId;
+
     @ApiModelProperty(value = "组合项目名称集")
     @TableField(exist = false)
     private String groupItemNames;
@@ -113,6 +114,12 @@ public class TCombo implements Serializable {
     @ApiModelProperty(value = "售价")
     @TableField(exist = false)
     private Integer price;
+
+    @ApiModelProperty(value = "诊断标准")
+    private String diagnosticCriteria;
+
+    @ApiModelProperty(value = "症状询问")
+    private String symptomInquiry;
 
 
     @ApiModelProperty(value = "原价")

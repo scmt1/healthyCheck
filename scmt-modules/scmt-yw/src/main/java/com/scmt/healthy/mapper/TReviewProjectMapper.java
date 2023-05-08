@@ -26,7 +26,7 @@ public interface TReviewProjectMapper extends BaseMapper<TReviewProject> {
 
     IPage<TReviewProject> getTGroupPersonReviewer(@Param(Constants.WRAPPER) QueryWrapper<TReviewProject> queryWrapper,@Param("page") Page page);
 
-    IPage<TReviewProject> getTGroupPersonReviewerAndDept(@Param(Constants.WRAPPER) QueryWrapper<TReviewProject> queryWrapper,@Param("page") Page page,@Param("deptName") String deptName,@Param("testNum") String testNum);
+    IPage<TReviewProject> getTGroupPersonReviewerAndDept(@Param(Constants.WRAPPER) QueryWrapper<TReviewProject> queryWrapper,@Param("page") Page page,@Param("deptName") String deptName,@Param("testNum") String testNum,@Param("idCard") String idCard);
 
     TGroupPerson getTGroupPersonReviewerById(String id);
 
@@ -37,6 +37,8 @@ public interface TReviewProjectMapper extends BaseMapper<TReviewProject> {
     List<TReviewProject> listByWhere(@Param("tReviewProject") TReviewProject tReviewProject);
 
     List<TGroupPerson> queryReviewPersonData(@Param("orderId") String orderId);
+
+    List<TGroupPerson> queryReviewResultData(@Param("orderId") String orderId);
 
     List<TGroupPerson> queryAllPersonData(@Param("orderId") String orderId);
 }

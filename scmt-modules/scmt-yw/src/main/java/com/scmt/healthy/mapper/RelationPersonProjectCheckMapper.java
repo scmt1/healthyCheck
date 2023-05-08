@@ -18,4 +18,6 @@ import java.util.List;
 public interface RelationPersonProjectCheckMapper extends BaseMapper<RelationPersonProjectCheck> {
 
     List<TOrderGroupItem> getNoRegistProjectData(@Param("personId") String personId, @Param("departmentIds") List<String> deparmentIds);
+
+    List<TOrderGroupItem> getNoRegistProjectDataReview(@Param("personId") String personId, @Param("departmentIds") List<String> deparmentIds);
 }

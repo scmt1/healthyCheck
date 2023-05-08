@@ -1,12 +1,11 @@
 package com.scmt.healthy.service;
 
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.scmt.core.common.vo.Result;
+import com.baomidou.mybatisplus.extension.service.IService;
 import com.scmt.core.common.vo.PageVo;
 import com.scmt.core.common.vo.SearchVo;
+import com.scmt.healthy.entity.TCheckOrg;
 import com.scmt.healthy.entity.TCombo;
-import com.scmt.healthy.entity.TGroupPerson;
 
 import javax.servlet.http.HttpServletResponse;
 import java.util.List;
@@ -54,4 +53,18 @@ public interface ITComboService extends IService<TCombo> {
 	List<TCombo>  getItemById(String id);
 
 	List<TCombo> getTComboById(String[] id);
+
+	List<TCombo> getOrgAndComboData(TCheckOrg tCheckOrg);
+
+	TCombo getTCombo(String id);
+
+	/**
+	 * 根据机构id获取套餐分页列表
+	 * @param tCombo
+	 * @param searchVo
+	 * @param pageVo
+	 * @param checkOrgId
+	 * @return
+	 */
+	IPage<TCombo> getComboListInfoByPage(TCombo tCombo, SearchVo searchVo, PageVo pageVo,String checkOrgId);
 }

@@ -4,9 +4,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.scmt.healthy.entity.TComboItem;
-import com.scmt.healthy.entity.TGroupPerson;
-import com.scmt.healthy.entity.TOrderGroupItem;
+import com.scmt.healthy.entity.*;
 import com.scmt.healthy.service.ITComboItemService;
 import com.scmt.healthy.service.ITComboService;
 import com.scmt.healthy.service.ITOrderGroupItemService;
@@ -25,7 +23,6 @@ import com.scmt.core.common.utils.ResultUtil;
 import com.scmt.core.common.vo.Result;
 import com.scmt.core.common.utils.SecurityUtil;
 import com.scmt.core.common.annotation.SystemLog;
-import com.scmt.healthy.entity.TOrderGroup;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.scmt.core.common.enums.LogType;
 import io.swagger.annotations.Api;
@@ -223,10 +220,28 @@ public class TOrderGroupController {
                 QueryWrapper<TOrderGroupItem> queryWrapper = new QueryWrapper<TOrderGroupItem>();
                 queryWrapper.eq("group_id", orderGroup.getId());
                 queryWrapper.eq("del_flag", 0);
-                queryWrapper.orderByAsc("name");
-                queryWrapper.orderByAsc("project_type");
-                queryWrapper.orderByAsc("order_num");
+                queryWrapper.orderByAsc("order_num").orderByAsc("name").orderByAsc("project_type");
                 orderGroup.setProjectData(itOrderGroupItemService.list(queryWrapper));
+                //根据分组的套餐id 获取危害因素数据
+                if(orderGroup!=null && StringUtils.isNotBlank(orderGroup.getComboId())){
+                    String[] comboIds = orderGroup.getComboId().split(",");
+                    QueryWrapper<TCombo> comboQueryWrapper = new QueryWrapper<TCombo>();
+                    comboQueryWrapper.eq("del_flag", '0');
+                    comboQueryWrapper.in("id",comboIds);
+                    List<TCombo> tComboList = tComboService.list(comboQueryWrapper);//comboIds
+                    if(tComboList!=null && tComboList.size()>0){
+                        List<String> hazardFactorCodes = new ArrayList<>();
+                        List<String> hazardFactorTexts = new ArrayList<>();
+                        for(TCombo tCombo : tComboList){
+                            if(tCombo!=null && StringUtils.isNotBlank(tCombo.getHazardFactors()) && StringUtils.isNotBlank(tCombo.getHazardFactorsText())){
+                                hazardFactorCodes.add(tCombo.getHazardFactors());
+                                hazardFactorTexts.add(tCombo.getHazardFactorsText());
+                            }
+                        }
+                        orderGroup.setHazardFactorCodes(hazardFactorCodes);
+                        orderGroup.setHazardFactorTexts(hazardFactorTexts);
+                    }
+                }
             }
             return ResultUtil.data(result);
         } catch (Exception e) {
@@ -283,10 +298,15 @@ public class TOrderGroupController {
 
     @ApiOperation("查询订单对应的检查项目和危害因素")
     @GetMapping("queryCheckProjectAndHazardFactors")
-    public Result<Object> queryCheckProjectAndHazardFactors(String groupOrderId) {
+    public Result<Object> queryCheckProjectAndHazardFactors(String groupOrderId,String physicalType) {
         try {
-            Map<String, Object> stringObjectMap = tOrderGroupService.queryCheckProjectAndHazardFactors(groupOrderId);
-            return ResultUtil.data(stringObjectMap);
+            if(physicalType.contains("职业体检") || physicalType.contains("放射体检")){
+                Map<String, Object> stringObjectMap = tOrderGroupService.queryCheckProjectAndHazardFactors(groupOrderId);
+                return ResultUtil.data(stringObjectMap);
+            }else{
+                Map<String, Object> stringObjectMap = tOrderGroupService.queryCheckProjectAndHazardFactorsHealthy(groupOrderId);
+                return ResultUtil.data(stringObjectMap);
+            }
         } catch (Exception e) {
             e.printStackTrace();
             return ResultUtil.error("查询异常:" + e.getMessage());
@@ -314,6 +334,7 @@ public class TOrderGroupController {
             QueryWrapper<TOrderGroup> tOrderGroupQueryWrapper = new QueryWrapper<>();
             tOrderGroupQueryWrapper.eq("del_flag",0);
             tOrderGroupQueryWrapper.eq("group_order_id",groupOrderId);
+            tOrderGroupQueryWrapper.exists("select id from t_group_person where group_id = t_order_group.id");
             List<TOrderGroup> result = tOrderGroupService.list(tOrderGroupQueryWrapper);
             for (TOrderGroup orderGroup : result) {
                 String comboIds = orderGroup.getComboId();
@@ -339,9 +360,9 @@ public class TOrderGroupController {
                         if(id!=null && id.trim().length() > 0){
                             QueryWrapper<TComboItem> queryWrapper = new QueryWrapper<>();
                             queryWrapper.eq("del_flag",0);
-                            queryWrapper.in("combo_id", id);
+                            queryWrapper.eq("combo_id", id);
                             queryWrapper.groupBy("portfolio_project_id");
-                            queryWrapper.orderByAsc("order_num");
+                            queryWrapper.orderByAsc("order_num").orderByAsc("t_portfolio_project.NAME");
                             List<TComboItem> list = comboItemService.listByComboIds(queryWrapper);
                             String projectDataName = "";
                             for(TComboItem tComboItem : list){

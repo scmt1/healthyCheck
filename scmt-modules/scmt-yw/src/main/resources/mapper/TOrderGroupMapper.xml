@@ -31,26 +31,43 @@
              where del_flag = 0 and pay_status = 1 and group_unit_id = #{groupUnitId} ORDER BY create_time limit 1)
     </select>
     <select id="queryCheckProjectAndHazardFactors" resultType="java.util.Map">
-        SELECT GROUP_CONCAT(DISTINCT(name))                 AS physicalProject
+        SELECT GROUP_CONCAT(DISTINCT t1.name)                 AS physicalProject
              , GROUP_CONCAT(DISTINCT(a.path) SEPARATOR '|') AS hazardFactorsText
-        FROM t_order_group_item
+        FROM (SELECT *
+                FROM
+                    t_order_group_item
+                WHERE
+                    group_order_id = #{groupOrderId}
+                ORDER BY
+                    order_num ASC) as t1
                  join (SELECT DISTINCT SUBSTRING_INDEX(SUBSTRING_INDEX(a.path, '|', b.help_topic_id + 1), '|', -1) as path
                        FROM (SELECT hazard_factors_text as path FROM t_group_person WHERE t_group_person.order_id = #{groupOrderId}) a
                                 JOIN
                             mysql.help_topic b
                             ON b.help_topic_id &lt; (LENGTH(a.path) - LENGTH(REPLACE(a.path, '|', '')) + 1)) a
-        WHERE group_order_id = #{groupOrderId}
-        GROUP BY group_order_id
+        GROUP BY t1.group_order_id
+    </select>
+
+    <select id="queryCheckProjectAndHazardFactorsHealthy" resultType="java.util.Map">
+        SELECT GROUP_CONCAT(t1.name)                 AS physicalProject
+        FROM (SELECT *
+                FROM
+                    t_order_group_item
+                WHERE
+                    group_order_id = #{groupOrderId}
+                ORDER BY
+                    order_num ASC) as t1
+        GROUP BY t1.group_order_id
     </select>
 
     <select id="queryCheckProjectAndHazardFactorsList" resultType="java.util.Map">
-        SELECT SUBSTRING_INDEX(t_order_group.name, "[", 1) AS hazardFactorsName,
+        SELECT REPLACE(SUBSTRING_INDEX(t_order_group.name, "[", 1),"|","、") AS hazardFactorsName,
                SUBSTRING_INDEX(SUBSTRING_INDEX(t_order_group.name, "[", -1), "]", 1) AS workStateName,
-               GROUP_CONCAT(t_order_group_item.`name`)     AS projectDataName
+               GROUP_CONCAT(DISTINCT t_order_group_item.`name`)     AS projectDataName
         FROM t_order_group
                  LEFT JOIN t_order_group_item ON t_order_group_item.group_id = t_order_group.id
-        WHERE t_order_group.group_order_id = #{groupOrderId}
-        GROUP BY t_order_group.id
+        WHERE t_order_group.group_order_id = #{groupOrderId} and EXISTS(select id from t_group_person where del_flag = 0 and t_group_person.group_id = t_order_group.id)
+        GROUP BY hazardFactorsName,workStateName
     </select>
 
     <select id="queryCheckProjectAndHazardFactorsComboList" resultType="java.util.Map">
@@ -78,12 +95,13 @@
            t_inspection_record.review_result,
             t_inspection_record.handle_opinion,
            t_inspection_record.other_check_abnormal_results,
-           t_inspection_record.career_illness_name
+           t_inspection_record.career_illness_name,
+           t_group_person.group_id
     from t_group_person
            left join t_inspection_record on t_inspection_record.person_id = t_group_person.id
-    where t_group_person.is_pass > 3 AND t_group_person.order_id = #{groupOrderId}
+    where t_group_person.is_pass > 3 AND t_group_person.order_id = #{groupOrderId} and t_group_person.del_flag = 0
 </select>
-<select id="queryReviewResultByOrderId" resultType="com.scmt.healthy.entity.TGroupPerson">
+<!--<select id="queryReviewResultByOrderId" resultType="com.scmt.healthy.entity.TGroupPerson">
     select REPLACE(REPLACE(REPLACE(t_group_person.work_state_text, '\r', ''), '\n', ''),' ','') AS workStateName,
            REPLACE(REPLACE(REPLACE(t_group_person.hazard_factors_text, '\r', ''), '\n', ''),' ','') AS hazardFactorsName,
            t_review_project.name AS reviewName,
@@ -92,6 +110,9 @@
               t_group_person.person_name,
            t_inspection_record.conclusion,
            t_inspection_record.review_result,
+           t_inspection_record.review_result_code,
+           t_inspection_record.review_inspect_date,
+           t_inspection_record.review_opinion,
            t_inspection_record.handle_opinion,
            t_inspection_record.other_check_abnormal_results,
            t_inspection_record.career_illness_name
@@ -100,6 +121,28 @@
            left join t_review_project on t_review_project.person_id = t_group_person.id
     where t_group_person.is_pass > 3 AND t_group_person.is_recheck = 1 AND t_group_person.review_statu = 1 AND t_group_person.order_id = #{groupOrderId}
     GROUP BY t_group_person.id
+</select>-->
+
+    <select id="queryReviewResultByOrderId" resultType="com.scmt.healthy.entity.TGroupPerson">
+    select REPLACE(REPLACE(REPLACE(t_group_person.work_state_text, '\r', ''), '\n', ''),' ','') AS workStateName,
+           REPLACE(REPLACE(REPLACE(t_group_person.hazard_factors_text, '\r', ''), '\n', ''),' ','') AS hazardFactorsName,
+           t_review_project.name AS reviewName,
+           t_review_person.check_result,
+              t_group_person.person_name,
+           t_inspection_record.conclusion,
+           t_inspection_record.review_result,
+           t_inspection_record.review_result_code,
+           t_inspection_record.review_inspect_date,
+           t_inspection_record.review_opinion,
+           t_inspection_record.handle_opinion,
+           t_inspection_record.other_check_abnormal_results,
+           t_inspection_record.career_illness_name
+    from t_review_person
+           left join t_group_person on t_group_person.id = t_review_person.first_person_id
+           left join t_inspection_record on t_inspection_record.person_id = t_review_person.id
+           left join t_review_project on t_review_project.person_id = t_review_person.id
+    where t_review_person.is_pass > 3 AND t_review_person.order_id = #{groupOrderId}
+    GROUP BY t_review_person.id
 </select>
 
 

@@ -19,5 +19,9 @@
     <sql id="Base_Column_List">
         id, disease_name, disease_date, diagnostic_unit, after_treatment, fate, person_id, create_id, create_time
     </sql>
+    <select id="getByPersonIdList" resultType="com.scmt.healthy.entity.TPastMedicalHistory">
+select t_past_medical_history.person_id,t_past_medical_history.yes_or_no_sick,t_past_medical_history.disease_name from t_past_medical_history
+         ${ew.customSqlSegment}
+    </select>
 
 </mapper>

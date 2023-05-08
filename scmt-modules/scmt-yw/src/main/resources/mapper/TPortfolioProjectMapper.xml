@@ -13,4 +13,8 @@
         select * from  t_portfolio_project
         where id=#{id}
     </select>
+    <select id="getProjectData" resultType="com.scmt.healthy.entity.TPortfolioProject">
+        SELECT t_portfolio_project.* FROM t_portfolio_project LEFT JOIN t_combo_item ON t_portfolio_project.id  = t_combo_item.portfolio_project_id LEFT JOIN t_combo ON t_combo_item.combo_id = t_combo.id
+        ${ew.customSqlSegment}
+    </select>
 </mapper>

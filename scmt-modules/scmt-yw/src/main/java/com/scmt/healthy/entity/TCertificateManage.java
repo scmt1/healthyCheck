@@ -1,6 +1,7 @@
 package com.scmt.healthy.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -45,7 +46,7 @@ public class TCertificateManage implements Serializable {
     private String sex;
 
     @ApiModelProperty(value = "年龄")
-    private String age;
+    private Integer age;
 
     @ApiModelProperty(value = "体检结果")
     private String results;
@@ -70,10 +71,10 @@ public class TCertificateManage implements Serializable {
     private Object headImg;
 
     @ApiModelProperty(value = "是否显示(0-不显示，1-显示)")
+    @TableLogic
     private Integer delFlag;
 
     @ApiModelProperty(value = "是否删除(0-未删除，1-已删除)")
-    @TableLogic
     private Integer isShow;
 
     @ApiModelProperty(value = "创建人")
@@ -102,5 +103,77 @@ public class TCertificateManage implements Serializable {
 
     @ApiModelProperty(value = "人员id")
     private String personId;
+
+    @ApiModelProperty(value = "头像路径")
+    @TableField(exist = false)
+    private String headImgPath;
+
+    @ApiModelProperty(value = "分组id")
+    @TableField(exist = false)
+    private String groupId;
+
+    @ApiModelProperty(value = "套餐名称")
+    @TableField(exist = false)
+    private String comboName;
+
+    @ApiModelProperty(value = "从业类别")
+    @TableField(exist = false)
+    private String certificateType;
+
+    @ApiModelProperty(value = "打印状态")
+    @TableField(exist = false)
+    private Integer printState;
+
+    @ApiModelProperty(value = "登记时间")
+    @TableField(exist = false)
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date registDate;
+
+    @ApiModelProperty(value = "身份证号")
+    @TableField(exist = false)
+    private String idCard;
+
+    @ApiModelProperty(value = "是否上传")
+    private Integer isUpload;
+
+    @ApiModelProperty(value = "上传异常信息")
+    private String exceptionMessage;
+
+    @ApiModelProperty(value = "联系电话")
+    @TableField(exist = false)
+    private String mobile;
+
+    @ApiModelProperty(value = "健康证编码")
+    private String healthCcertificate;
+
+    @ApiModelProperty(value = "登记号码")
+    private String registrationNumber;
+
+    @ApiModelProperty(value = "出生日期")
+    @TableField(exist = false)
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
+    private Date birth;
+
+    @ApiModelProperty(value = "单位统一信用代码")
+    @TableField(exist = false)
+    private String uscc;
+
+    @ApiModelProperty(value = "单位名称")
+    @TableField(exist = false)
+    private String unitName;
+
+    @ApiModelProperty(value = "民族")
+    @TableField(exist = false)
+    private String nation;
+
+    @ApiModelProperty(value = "体检人员上传id")
+    private String basicPersonId;
+
+    @ApiModelProperty(value = "体检人员结果上传id")
+    private String physicalExaminationId;
+
+    @ApiModelProperty(value = "健康证上传id")
+    private String medicalCertificateId;
 
 }

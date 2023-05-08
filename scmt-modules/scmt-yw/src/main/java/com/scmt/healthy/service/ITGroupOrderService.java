@@ -1,11 +1,11 @@
 package com.scmt.healthy.service;
 
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.scmt.core.common.vo.Result;
+import com.baomidou.mybatisplus.extension.service.IService;
 import com.scmt.core.common.vo.PageVo;
 import com.scmt.core.common.vo.SearchVo;
 import com.scmt.healthy.entity.TGroupOrder;
+
 import javax.servlet.http.HttpServletResponse;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +40,11 @@ public interface ITGroupOrderService extends IService<TGroupOrder> {
 	*/
 	public void download(TGroupOrder  tGroupOrder, HttpServletResponse response) ;
 
+	/**
+	 * 模糊查询所有
+	 * @param tGroupOrder
+	 * @return
+	 */
     List<TGroupOrder> queryAllTGroupOrderList(TGroupOrder tGroupOrder);
 
     TGroupOrder getOneByWhere(String departmentId);
@@ -72,4 +77,11 @@ public interface ITGroupOrderService extends IService<TGroupOrder> {
 	 * @return 返回获取结果
 	 */
 	Map<String,Object> getComNameByGroupId(String groupId);
+
+
+	/**
+	 * 获取当天最新的订单信息
+	 * @return
+	 */
+    TGroupOrder getLastGroupOrderInfo();
 }

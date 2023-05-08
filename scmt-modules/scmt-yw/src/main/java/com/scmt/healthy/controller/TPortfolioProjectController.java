@@ -21,6 +21,7 @@ import com.scmt.healthy.service.IRelationBasePortfolioService;
 import com.scmt.healthy.service.ITBaseProjectService;
 import com.scmt.healthy.service.ITComboItemService;
 import com.scmt.healthy.service.ITPortfolioProjectService;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.scmt.core.common.utils.ResultUtil;
@@ -145,7 +146,12 @@ public class TPortfolioProjectController {
             if (res != null) {
                 ArrayList<String> idList = iRelationBasePortfolioService.queryBaseProjectIdList(id);
                 if (idList != null && idList.size() > 0) {
-                    res.setProjectList(itBaseProjectService.listByIds(idList));
+                    QueryWrapper<TBaseProject> tBaseProjectQueryWrapper = new QueryWrapper<>();
+                    tBaseProjectQueryWrapper.eq("del_flag",0);
+                    tBaseProjectQueryWrapper.in("id",idList);
+                    tBaseProjectQueryWrapper.orderByAsc("order_num");
+                    List<TBaseProject> tBaseProjectList = itBaseProjectService.list(tBaseProjectQueryWrapper);
+                    res.setProjectList(tBaseProjectList);
                 }
                 return ResultUtil.data(res, "查询成功");
             } else {
@@ -208,9 +214,9 @@ public class TPortfolioProjectController {
      * @param tPortfolioProject 实体
      * @return 返回更新结果
      */
-    @SystemLog(description = "更新组合项目数据", type = LogType.OPERATION)
     @ApiOperation("更新组合项目数据")
     @PostMapping("updateTPortfolioProject")
+    @Transactional
     public Result<Object> updateTPortfolioProject(@RequestBody TPortfolioProject tPortfolioProject) {
         if (StringUtils.isBlank(tPortfolioProject.getId())) {
             return ResultUtil.error("参数为空，请联系管理员！！");
@@ -222,14 +228,26 @@ public class TPortfolioProjectController {
             if (res) {
                 QueryWrapper<RelationBasePortfolio> queryWrapper = new QueryWrapper<>();
                 queryWrapper.eq("portfolio_project_id", tPortfolioProject.getId());
+                int count = iRelationBasePortfolioService.count(queryWrapper);
+                if(count>0){
+                    //先删除
+                    boolean b = iRelationBasePortfolioService.remove(queryWrapper);
+                    if(!b){
+                        TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                        return ResultUtil.error("组合项目保存失败:删除原绑定的组合项目失败，请联系管理员！！");
+                    }
+                }
+
 //                iRelationBasePortfolioService.remove(queryWrapper);
                 if (tPortfolioProject.getProjectList() != null && tPortfolioProject.getProjectList().size() > 0) {
                     ArrayList<RelationBasePortfolio> relationBasePortfolios = new ArrayList<>();
                     for (TBaseProject tBaseProject : tPortfolioProject.getProjectList()) {
                         if (StringUtils.isBlank(tBaseProject.getResultType())) {
+                            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
                             return ResultUtil.error(tBaseProject.getName() + "结果类型或者单位为空，绑定失败！！");
                         }
                         if ("数值".equals(tBaseProject.getResultType()) && StringUtils.isBlank(tBaseProject.getUnitCode())) {
+                            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
                             return ResultUtil.error(tBaseProject.getName() + "项目单位为空,绑定失败！");
                         }
                         RelationBasePortfolio portfolio = new RelationBasePortfolio();
@@ -237,8 +255,11 @@ public class TPortfolioProjectController {
                         portfolio.setPortfolioProjectId(tPortfolioProject.getId());
                         relationBasePortfolios.add(portfolio);
                     }
-                    iRelationBasePortfolioService.remove(queryWrapper);
-                    iRelationBasePortfolioService.saveBatch(relationBasePortfolios);
+                    boolean  b = iRelationBasePortfolioService.saveBatch(relationBasePortfolios);
+                    if(!b){
+                        TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                        return ResultUtil.error("组合项目保存失败:保存绑定的基础项目失败！");
+                    }
                 }
                 return ResultUtil.data(res, "保存成功");
             } else {
@@ -246,6 +267,7 @@ public class TPortfolioProjectController {
             }
         } catch (Exception e) {
             e.printStackTrace();
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             return ResultUtil.error("保存异常:" + e.getMessage());
         }
     }

@@ -1,17 +1,14 @@
 package com.scmt.healthy.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.scmt.core.common.vo.PageVo;
 import com.scmt.core.common.vo.SearchVo;
 import com.scmt.healthy.entity.TBaseProject;
 import com.scmt.healthy.entity.TPortfolioProject;
-import com.scmt.healthy.entity.TReviewProject;
 
 import javax.servlet.http.HttpServletResponse;
 import java.util.List;
-import java.util.Map;
 
 /**
  *@author
@@ -48,4 +45,8 @@ public interface ITPortfolioProjectService extends IService<TPortfolioProject> {
 	 * @return
 	 */
 	List<TPortfolioProject> queryPortfolioProjectList(TPortfolioProject tPortfolioProject);
+
+    List<TPortfolioProject> getProjectData(String id);
+
+	List<TPortfolioProject> getProjectList(List<Object> id);
 }

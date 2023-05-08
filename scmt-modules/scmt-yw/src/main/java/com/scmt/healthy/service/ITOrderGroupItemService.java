@@ -47,6 +47,9 @@ public interface ITOrderGroupItemService extends IService<TOrderGroupItem> {
     //获取分组下边所有的分组项
     Integer getAllCheckCount(String personId, String groupId);
 
+    //获取分组下边所有的分组项(复查)
+    Integer getAllCheckCountReview(String personId, String groupId);
+
     //获取检查结果中已经检查的项目
     Integer getDepartResultCount(String personId, String groupId);
 

@@ -24,6 +24,8 @@ public interface TOrderGroupMapper extends BaseMapper<TOrderGroup> {
 
     Map<String, Object> queryCheckProjectAndHazardFactors(@Param("groupOrderId") String groupOrderId);
 
+    Map<String, Object> queryCheckProjectAndHazardFactorsHealthy(@Param("groupOrderId") String groupOrderId);
+
     public List<TGroupPerson> queryCheckResultByOrderId(@Param("groupOrderId") String groupOrderId);
 
     public List<TGroupPerson> queryReviewResultByOrderId(@Param("groupOrderId") String groupOrderId);

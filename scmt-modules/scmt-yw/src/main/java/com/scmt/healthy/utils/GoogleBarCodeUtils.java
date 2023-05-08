@@ -9,6 +9,7 @@ import com.google.zxing.EncodeHintType;
 import com.google.zxing.WriterException;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.oned.Code128Writer;
+import com.scmt.healthy.common.SocketConfig;
 import io.micrometer.core.instrument.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -64,10 +65,39 @@ public class GoogleBarCodeUtils {
             // 编码内容, 编码类型, 宽度, 高度, 设置参数
             if (vaNumber.length() == 6) {
                 WIDTH = 155;
-            } else {
+            }
+            else {
                 WIDTH = 180;
             }
             BitMatrix bitMatrix = writer.encode(vaNumber, BarcodeFormat.CODE_128, WIDTH, HEIGHT, hints);
+            return MatrixToImageWriter.toBufferedImage(bitMatrix);
+        } catch (WriterException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    /**
+     * 生成 图片缓冲
+     *
+     * @param vaNumber VA 码
+     * @return 返回BufferedImage
+     * @author fxbin
+     */
+    public static BufferedImage getBarCodeByWidth(String vaNumber, int width ) {
+        try {
+            Code128Writer writer = new Code128Writer();
+            if(width<=0){
+                // 编码内容, 编码类型, 宽度, 高度, 设置参数
+                if (vaNumber.length() == 6) {
+                    width = 155;
+                }
+                else {
+                    width = 180;
+                }
+            }
+
+            BitMatrix bitMatrix = writer.encode(vaNumber, BarcodeFormat.CODE_128, width, HEIGHT, hints);
             return MatrixToImageWriter.toBufferedImage(bitMatrix);
         } catch (WriterException e) {
             e.printStackTrace();
@@ -155,9 +185,9 @@ public class GoogleBarCodeUtils {
                 if (i == 0) {
                     g.drawString(tempStrs[i], loc_X, loc_Y);
                 } else {
-                    if (i > 0 && tempStrs[i].length() > 8) {
-                        g.drawString(tempStrs[i].substring(0, 8) + "...", loc_X, loc_Y + height);
-                    } else {
+                    if (i < 2 && i > 0 && StringUtils.isNotBlank(tempStrs[i]) && tempStrs[i].length() > 11) {
+                        g.drawString(tempStrs[i].substring(0, 11) + "...", loc_X, loc_Y + height);
+                    } else if(i < 2 && StringUtils.isNotBlank(tempStrs[i])){
                         g.drawString(tempStrs[i], loc_X, loc_Y + height);
                     }
                     if (StringUtils.isNotBlank(tempStrs[i])) {
@@ -211,6 +241,19 @@ public class GoogleBarCodeUtils {
      */
     public static String generatorBase64Barcode(String data, String info) throws IOException {
         BufferedImage image = insertWords(getBarCode(data), data, info);
+        //输出流
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        ImageIO.write(image, "png", stream);
+        String encode = Base64.encode(stream.toByteArray());
+        return "data:image/png;base64," + encode;
+    }
+    /**
+     * @param data 生成条形码的数据
+     * @param info 条形码下方的描述
+     * @return
+     */
+    public static String generatorBase64BarcodeByWidth(String data, String info,int width) throws IOException {
+        BufferedImage image = insertWords(getBarCodeByWidth(data,width), data, info);
         //输出流
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         ImageIO.write(image, "png", stream);

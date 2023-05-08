@@ -67,4 +67,25 @@ public interface TTemplateMapper extends BaseMapper<TTemplate> {
 	 * @return
 	 */
 	List<TDepartItemResult> getDepartItemResultListByPersonIds(@Param(value = "personIds")List<String> personIds,@Param(value = "groupIds")List<String> groupIds);
+
+	/**
+	 * 根据用户id 集合查询组合项目结果
+	 * @param personIds
+	 * @return
+	 */
+	List<TDepartResult> getDepartResultListByReviewPersonIds(@Param(value = "personIds") List<String> personIds,@Param(value = "groupIds") List<String> groupIds);
+
+	/**
+	 * 根据用户id集合查询组合项目结果
+	 * @param personIds
+	 * @return
+	 */
+	List<TDepartItemResult> getDepartItemResultListByReviewPersonIds(@Param(value = "personIds")List<String> personIds,@Param(value = "groupIds")List<String> groupIds);
+
+	/**
+	 * 根据用户id集合 查询 人员第一次Id集合
+	 * @param personIds
+	 * @return
+	 */
+	List<String> getPersonIdsByReviewPersonIds (@Param(value = "personIds")List<String> personIds);
 }

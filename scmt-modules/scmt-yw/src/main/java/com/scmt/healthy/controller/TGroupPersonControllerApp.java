@@ -250,6 +250,7 @@ public class TGroupPersonControllerApp {
             List<TGroupPerson> re = new ArrayList<>();
             for (String str : strings) {
                 TGroupPerson byId = tGroupPersonService.getById(str);
+                byId.setUpdateTime(new Date());
                 byId.setIsPass(5);
                 re.add(byId);
             }
@@ -524,6 +525,7 @@ public class TGroupPersonControllerApp {
                     checkQueryWrapper.eq("state", 2);
                     checkQueryWrapper.eq("person_id", personId);
                     int count2 = iRelationPersonProjectCheckService.count(checkQueryWrapper);
+                    /*int count2 = 0;*/
 
                     //没检查完  修改状态为2，到分诊
                     if (count1.intValue() < (count.intValue() - count2)) {
@@ -706,43 +708,138 @@ public class TGroupPersonControllerApp {
                     String occupationalTaboo = "";
                     String occupationalDiseasesCode = "";
                     String occupationalTabooCode = "";
+                    //危害因素对应的职业病和危害因素
+                    List<Map<String,Object>> listMap= new ArrayList<>();
                     if(comboId != null && StringUtils.isNotBlank(comboId)){
                         if (comboId.contains(",")) {
                             String[] split = comboId.split(",");
                             List<TCombo> tCombos = itComboService.listByIds(Arrays.asList(split));
 
+
                             for (TCombo tCombo : tCombos) {
+                                //危害因素对象
+                                Map<String,Object> mapItem = new HashMap<>();
+                                mapItem.put("name",tCombo.getHazardFactorsText());
+                                mapItem.put("code",tCombo.getHazardFactors());
+                                String[] splitOccupationalDisease =  new String[]{};
+                                String[] splitOccupationalDiseasesCode =  new String[]{};
+                                String[] splitOccupationalTaboo =  new String[]{};
+                                String[] splitOccupationalTabooCode =  new String[]{};
                                 if(StringUtils.isNotBlank(tCombo.getOccupationalDiseases()) && !";\n".equals(tCombo.getOccupationalDiseases())){
                                     occupationalDiseases += tCombo.getOccupationalDiseases();
+                                    splitOccupationalDisease = tCombo.getOccupationalDiseases().split(";");
                                 }
                                 if(StringUtils.isNotBlank(tCombo.getOccupationalTaboo()) && !";\n".equals(tCombo.getOccupationalTaboo())){
                                     occupationalTaboo += tCombo.getOccupationalTaboo();
+                                    splitOccupationalTaboo = tCombo.getOccupationalTaboo().split(";");
                                 }
                                 if(StringUtils.isNotBlank(tCombo.getOccupationalDiseasesCode()) && !";\n".equals(tCombo.getOccupationalDiseasesCode())){
                                     occupationalDiseasesCode += tCombo.getOccupationalDiseasesCode() + ";";
+                                    splitOccupationalDiseasesCode = tCombo.getOccupationalDiseasesCode().split(";");
                                 }
                                 if(StringUtils.isNotBlank(tCombo.getOccupationalTabooCode()) && !";\n".equals(tCombo.getOccupationalTabooCode())){
                                     occupationalTabooCode += tCombo.getOccupationalTabooCode() + ";";
+                                    splitOccupationalTabooCode = tCombo.getOccupationalTabooCode().split(";");
                                 }
+                                //职业病
+                                if(splitOccupationalDisease!=null&&splitOccupationalDiseasesCode!=null
+                                        &&splitOccupationalDiseasesCode.length>0 && splitOccupationalDisease.length>0
+                                        && splitOccupationalDiseasesCode.length == splitOccupationalDisease.length){
+                                    List<Map<String,Object>> listDisease= new ArrayList<>();
+                                    for (int i = 0; i < splitOccupationalDisease.length; i++) {
+                                        Map<String,Object> mapDisease = new HashMap<>();
+                                        mapDisease.put("name",splitOccupationalDisease[i]);
+                                        mapDisease.put("code",splitOccupationalDiseasesCode[i]);
+                                    }
+                                    //有职业病
+                                    mapItem.put("Diseases",listDisease);
+                                }
+                                else{
+                                    mapItem.put("Diseases",null);
+                                }
+                                //禁忌症
+                                if(splitOccupationalTaboo!=null&&splitOccupationalTabooCode!=null
+                                        &&splitOccupationalTabooCode.length>0 && splitOccupationalTaboo.length>0
+                                        && splitOccupationalTabooCode.length == splitOccupationalTaboo.length){
+                                    List<Map<String,Object>> listDisease= new ArrayList<>();
+                                    for (int i = 0; i < splitOccupationalTaboo.length; i++) {
+                                        Map<String,Object> mapDisease = new HashMap<>();
+                                        mapDisease.put("name",splitOccupationalTaboo[i]);
+                                        mapDisease.put("code",splitOccupationalTabooCode[i]);
+                                    }
+                                    //有职业病
+                                    mapItem.put("Diseases",listDisease);
+                                }
+                                else{
+                                    mapItem.put("Diseases",null);
+                                }
+                                listMap.add(mapItem);
                             }
+
                         } else {
                             TCombo byId1 = itComboService.getById(comboId);
                             if (byId1 != null) {
+                                //危害因素对象
+                                Map<String,Object> mapItem = new HashMap<>();
+                                mapItem.put("name",byId1.getHazardFactorsText());
+                                mapItem.put("code",byId1.getHazardFactors());
+                                String[] splitOccupationalDisease =  new String[]{};
+                                String[] splitOccupationalDiseasesCode =  new String[]{};
+                                String[] splitOccupationalTaboo =  new String[]{};
+                                String[] splitOccupationalTabooCode =  new String[]{};
                                 if(StringUtils.isNotBlank(byId1.getOccupationalDiseases()) && !";\n".equals(byId1.getOccupationalDiseases())){
                                     occupationalDiseases += byId1.getOccupationalDiseases();
+                                    splitOccupationalDisease = byId1.getOccupationalDiseases().split(";");
                                 }
                                 if(StringUtils.isNotBlank(byId1.getOccupationalTaboo()) && !";\n".equals(byId1.getOccupationalTaboo())){
                                     occupationalTaboo += byId1.getOccupationalTaboo();
+                                    splitOccupationalTaboo = byId1.getOccupationalTaboo().split(";");
                                 }
                                 if(StringUtils.isNotBlank(byId1.getOccupationalDiseasesCode()) && !";\n".equals(byId1.getOccupationalDiseasesCode())){
                                     occupationalDiseasesCode += byId1.getOccupationalDiseasesCode();
+                                    splitOccupationalDiseasesCode = byId1.getOccupationalDiseasesCode().split(";");
                                 }
                                 if(StringUtils.isNotBlank(byId1.getOccupationalTabooCode()) && !";\n".equals(byId1.getOccupationalTabooCode())){
                                     occupationalTabooCode += byId1.getOccupationalTabooCode();
+                                    splitOccupationalTabooCode = byId1.getOccupationalTabooCode().split(";");
                                 }
+                                //职业病
+                                if(splitOccupationalDisease!=null&&splitOccupationalDiseasesCode!=null
+                                        &&splitOccupationalDiseasesCode.length>0 && splitOccupationalDisease.length>0
+                                        && splitOccupationalDiseasesCode.length == splitOccupationalDisease.length){
+                                    List<Map<String,Object>> listDisease= new ArrayList<>();
+                                    for (int i = 0; i < splitOccupationalDisease.length; i++) {
+                                        Map<String,Object> mapDisease = new HashMap<>();
+                                        mapDisease.put("name",splitOccupationalDisease[i]);
+                                        mapDisease.put("code",splitOccupationalDiseasesCode[i]);
+                                    }
+                                    //有职业病
+                                    mapItem.put("Diseases",listDisease);
+                                }
+                                else{
+                                    mapItem.put("Diseases",null);
+                                }
+//职业病                         //禁忌症
+                                if(splitOccupationalTaboo!=null&&splitOccupationalTabooCode!=null
+                                        &&splitOccupationalTabooCode.length>0 && splitOccupationalTaboo.length>0
+                                        && splitOccupationalTabooCode.length == splitOccupationalTaboo.length){
+                                    List<Map<String,Object>> listDisease= new ArrayList<>();
+                                    for (int i = 0; i < splitOccupationalTaboo.length; i++) {
+                                        Map<String,Object> mapDisease = new HashMap<>();
+                                        mapDisease.put("name",splitOccupationalTaboo[i]);
+                                        mapDisease.put("code",splitOccupationalTabooCode[i]);
+                                    }
+                                    //有职业病
+                                    mapItem.put("Diseases",listDisease);
+                                }
+                                else{
+                                    mapItem.put("Diseases",null);
+                                }
+                                listMap.add(mapItem);
                             }
                         }
                     }
+                    map.put("hazardFactorsList",listMap);
                     map.put("occupational_diseases", occupationalDiseases);
                     map.put("occupational_taboo", occupationalTaboo);
                     map.put("occupational_diseases_code", occupationalDiseasesCode);
@@ -3064,7 +3161,7 @@ public class TGroupPersonControllerApp {
                                 person.setSex("男");
                             }
                         }
-                        if(map.containsKey("groupId") && map.get("groupId")!=null && StringUtils.isNotBlank(map.get("groupId").toString())){
+                        if(map.containsKey("groupId") && map.get("groupId")!=null){
                             String groupIdStr = map.get("groupId").toString();
                             if(StringUtils.isNotBlank(groupIdStr)){
                                 groupId = groupIdStr;

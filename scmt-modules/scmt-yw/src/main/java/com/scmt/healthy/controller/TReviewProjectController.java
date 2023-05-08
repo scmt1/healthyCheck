@@ -12,6 +12,7 @@ import com.scmt.healthy.service.*;
 import javax.servlet.http.HttpServletResponse;
 import javax.transaction.Transactional;
 
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -66,6 +67,9 @@ public class TReviewProjectController {
 
     @Autowired
     private ITDepartResultService departResultService;
+
+    @Autowired
+    private ITReviewPersonService itReviewPersonService;
 
     /**
      * 功能描述：新增复查项目数据
@@ -126,24 +130,79 @@ public class TReviewProjectController {
     @ApiOperation("根据主键来删除复查项目数据")
     @SystemLog(description = "根据主键来删除复查项目数据", type = LogType.OPERATION)
     @PostMapping("deleteTReviewProject")
+    @Transactional(rollbackOn = { Exception.class })
     public Result<Object> deleteTReviewProject(@RequestParam String[] ids) {
         if (ids == null || ids.length == 0) {
             return ResultUtil.error("参数为空，请联系管理员！！");
         }
         try {
+            String currendId = securityUtil.getCurrUser().getId();
+
             QueryWrapper<TDepartResult> queryWrapper = new QueryWrapper<>();
             queryWrapper.in("group_item_id", Arrays.asList(ids));
-            TDepartResult tDepartResult = new TDepartResult();
-            tDepartResult.setDelFlag(1);
-            departResultService.update(tDepartResult,queryWrapper);
-            boolean res = tReviewProjectService.removeByIds(Arrays.asList(ids));
-            if (res) {
-                return ResultUtil.data(res, "删除成功");
-            } else {
-                return ResultUtil.error("删除失败");
+            List<TDepartResult> departResults = departResultService.list(queryWrapper);
+            if(departResults!=null && departResults.size()>0){
+                TDepartResult tDepartResult = new TDepartResult();
+                tDepartResult.setDelFlag(1);
+                tDepartResult.setDeleteDate(new Date());
+                tDepartResult.setDeleteId(currendId);
+                boolean resDep = departResultService.update(tDepartResult,queryWrapper);
+                if(!resDep){
+                    //手工回滚异常
+                    TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                    return ResultUtil.error("组合项结果删除失败");
+                }
             }
+
+            String personId = "";
+            String id0 = ids[0];
+            if(id0!=null && id0.trim().length()>0){
+                QueryWrapper<TReviewProject> queryWrapper1 = new QueryWrapper<>();
+                queryWrapper1.in("id", id0);
+                TReviewProject tReviewProject = tReviewProjectService.getOne(queryWrapper1);
+                personId = tReviewProject.getPersonId();//获取人员id
+            }
+
+            boolean res = tReviewProjectService.removeByIds(Arrays.asList(ids));//删除项目
+            if(!res){
+                //手工回滚异常
+                TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                return ResultUtil.error("复查项目删除失败");
+            }
+
+            if(personId!=null && personId.trim().length()>0 && res){
+                QueryWrapper<TReviewProject> queryWrapper1 = new QueryWrapper<>();
+                queryWrapper1.in("person_id", personId);
+                queryWrapper1.in("del_flag", 0);
+                List<TReviewProject> tReviewProjects = tReviewProjectService.list(queryWrapper1);
+                if(tReviewProjects==null || tReviewProjects.size()==0){
+                    TReviewPerson tReviewPersons = itReviewPersonService.getById(personId);
+                    //更新人员复查状态
+                    if(tReviewPersons!=null && StringUtils.isNotBlank(tReviewPersons.getFirstPersonId())){
+                        TGroupPerson tGroupPerson = new TGroupPerson();
+                        tGroupPerson.setId(tReviewPersons.getFirstPersonId());
+                        tGroupPerson.setIsRecheck(0);
+                        boolean resGrp = itGroupPersonService.updateById(tGroupPerson);
+                        if(!resGrp){
+                            //手工回滚异常
+                            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                            return ResultUtil.error("人员复查状态修改时失败");
+                        }
+                        //删除复查人员
+                        boolean resRevp = itReviewPersonService.removeById(personId);
+                        if(!resRevp){
+                            //手工回滚异常
+                            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                            return ResultUtil.error("复查人员删除失败");
+                        }
+                    }
+                }
+            }
+            return ResultUtil.data(res, "删除成功");
         } catch (Exception e) {
             e.printStackTrace();
+            //手工回滚异常
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             return ResultUtil.error("删除异常:" + e.getMessage());
         }
     }
@@ -221,16 +280,32 @@ public class TReviewProjectController {
     @SystemLog(description = "更新分检结果数据", type = LogType.OPERATION)
     @ApiOperation("更新分检结果数据")
     @PostMapping("reCheckBaseProject")
-    @Transactional
+    @Transactional(rollbackOn = { Exception.class })
     public Result<Object> reCheckBaseProject(TGroupPerson groupPerson) {
         if (groupPerson == null) {
             return ResultUtil.error("参数为空");
         }
         try {
+            //判断是否已创建复查人员信息，是就修改
+            Boolean addReviewPerson = false;
+            QueryWrapper<TReviewPerson> tReviewPersonQueryWrapper = new QueryWrapper<>();
+            tReviewPersonQueryWrapper.eq("del_flag",0);
+            tReviewPersonQueryWrapper.eq("old_person_id",groupPerson.getId());
+            List<TReviewPerson> tReviewPersonList = itReviewPersonService.list(tReviewPersonQueryWrapper);
+            String reviewPersonId = "";//本次复查人员id
+            if(tReviewPersonList.size() > 0){
+                reviewPersonId = tReviewPersonList.get(0).getId();
+                addReviewPerson = false;
+            }else{
+                reviewPersonId = UUID.randomUUID().toString().replaceAll("-", "");
+                addReviewPerson = true;
+            }
+
             //是否存有当前人的复检记录
             QueryWrapper<TReviewProject> reviewProjectQueryWrapper = new QueryWrapper<>();
             reviewProjectQueryWrapper.eq("group_id", groupPerson.getGroupId());
-            reviewProjectQueryWrapper.eq("person_id", groupPerson.getId());
+//            reviewProjectQueryWrapper.eq("person_id", groupPerson.getId());
+            reviewProjectQueryWrapper.eq("person_id", reviewPersonId);
             reviewProjectQueryWrapper.eq("del_flag", 0);
             reviewProjectQueryWrapper.orderByDesc("create_time");
             reviewProjectQueryWrapper.last("limit 1");
@@ -242,6 +317,103 @@ public class TReviewProjectController {
             } else {
                 testNum = generatorNum();
             }
+            //保存人员信息
+            TGroupPerson byId1 = itGroupPersonService.getById(groupPerson.getId());
+            //新增复查人员表信息
+            if(addReviewPerson){
+                if(byId1==null){
+                    TReviewPerson tReviewPerson1 = itReviewPersonService.getById(groupPerson.getId());
+                    TReviewPerson tReviewPerson = new TReviewPerson();
+                    tReviewPerson.setDelFlag(0);
+                    tReviewPerson.setIsPass(1);
+                    tReviewPerson.setTestNum(testNum);
+                    tReviewPerson.setId(reviewPersonId);
+                    tReviewPerson.setOldPersonId(tReviewPerson1.getId());
+                    tReviewPerson.setFirstPersonId(tReviewPerson1.getFirstPersonId());
+                    tReviewPerson.setGroupId(tReviewPerson1.getGroupId());
+                    tReviewPerson.setUnitId(tReviewPerson1.getUnitId());
+                    tReviewPerson.setOrderId(tReviewPerson1.getOrderId());
+                    tReviewPerson.setPersonName(tReviewPerson1.getPersonName());
+                    tReviewPerson.setIdCard(tReviewPerson1.getIdCard());
+                    tReviewPerson.setDept(tReviewPerson1.getDept());
+                    tReviewPerson.setPhysicalType(tReviewPerson1.getPhysicalType());
+                    tReviewPerson.setCreateId(securityUtil.getCurrUser().getId());
+                    String code = "";
+                    if (groupPerson.getHazardFactorCode().length > 0 && groupPerson.getHazardFactorCode()!=null){
+                        for (int i = 0; i < groupPerson.getHazardFactorCode().length; i++) {
+                            code += groupPerson.getHazardFactorCode()[i]+"|";
+                        }
+                    }
+                    if (code.length()>0){
+                        code = code.substring(0,code.length()-1);
+                    }
+                    tReviewPerson.setHazardFactorCode(code);
+                    tReviewPerson.setCreateTime(new Date());
+                    Boolean flag = itReviewPersonService.save(tReviewPerson);
+                    if(!flag){
+                        TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                        return ResultUtil.error("保存失败：" + "保存复查人员信息失败，请重新保存");
+                    }
+                }else{
+                    TReviewPerson tReviewPerson = new TReviewPerson();
+                    tReviewPerson.setDelFlag(0);
+                    tReviewPerson.setIsPass(1);
+                    tReviewPerson.setTestNum(testNum);
+                    tReviewPerson.setId(reviewPersonId);
+                    tReviewPerson.setOldPersonId(byId1.getId());
+                    tReviewPerson.setFirstPersonId(byId1.getId());
+                    tReviewPerson.setGroupId(byId1.getGroupId());
+                    tReviewPerson.setUnitId(byId1.getUnitId());
+                    tReviewPerson.setOrderId(byId1.getOrderId());
+                    tReviewPerson.setPersonName(byId1.getPersonName());
+                    tReviewPerson.setIdCard(byId1.getIdCard());
+                    tReviewPerson.setDept(byId1.getDept());
+                    tReviewPerson.setPhysicalType(byId1.getPhysicalType());
+                    tReviewPerson.setCreateId(securityUtil.getCurrUser().getId());
+                    tReviewPerson.setCreateTime(new Date());
+                    String code = "";
+                    if (groupPerson.getHazardFactorCode().length > 0 && groupPerson.getHazardFactorCode() != null) {
+                        for (int i = 0; i < groupPerson.getHazardFactorCode().length; i++) {
+                            code += groupPerson.getHazardFactorCode()[i] + "|";
+                        }
+                    }
+                    if (code.length()>0){
+                        code = code.substring(0,code.length()-1);
+                    }
+                    tReviewPerson.setHazardFactorCode(code);
+                    Boolean flag = itReviewPersonService.save(tReviewPerson);
+                    if(!flag){
+                        TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                        return ResultUtil.error("保存失败：" + "保存复查人员信息失败，请重新保存");
+                    }
+                }
+            }else{//更新复查人员表状态 体检状态重置为未登记
+                TReviewPerson tReviewPerson = new TReviewPerson();
+                tReviewPerson.setIsPass(1);
+                QueryWrapper<TReviewPerson> tReviewPersonQueryWrapper1 = new QueryWrapper<>();
+                tReviewPersonQueryWrapper1.eq("del_flag",0);
+                tReviewPersonQueryWrapper1.eq("id",reviewPersonId);
+                Boolean flag = itReviewPersonService.update(tReviewPerson,tReviewPersonQueryWrapper1);
+                if(!flag){
+                    TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                    return ResultUtil.error("保存失败：" + "保存复查人员信息失败，请重新保存");
+                }
+            }
+
+            //更新人员复查状态
+            if (byId1 != null) {
+                byId1.setIsRecheck(1);
+                byId1.setReviewStatu(0);//新增复查项目后 重置复查状态
+                byId1.setUpdateTime(new Date());
+                byId1.setUpdateId(securityUtil.getCurrUser().getId());
+                Boolean flag = itGroupPersonService.updateById(byId1);
+                if(!flag){
+                    TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                    return ResultUtil.error("保存失败：" + "保存复查人员信息失败，请重新保存");
+                }
+            }
+
+
             //选中组合项目id
             String[] ids = groupPerson.getIds();
             List<String> strings = Arrays.asList(ids);
@@ -253,7 +425,8 @@ public class TReviewProjectController {
                     TPortfolioProject byId = portfolioProjectService.getById(portfolioId);
                     TReviewProject reviewProject = new TReviewProject();
                     reviewProject.setId(UUID.randomUUID().toString().replaceAll("-", ""));
-                    reviewProject.setPersonId(groupPerson.getId());
+//                    reviewProject.setPersonId(groupPerson.getId());
+                    reviewProject.setPersonId(reviewPersonId);
                     reviewProject.setPersonName(groupPerson.getPersonName());
                     reviewProject.setName(byId.getName() + "(复)");
                     reviewProject.setShortName(byId.getShortName());
@@ -274,6 +447,16 @@ public class TReviewProjectController {
                     reviewProject.setDelFlag(0);
                     reviewProject.setIsPass(1);
                     reviewProject.setProjectType(1);
+                    String code = "";
+                    if (groupPerson.getHazardFactorCode().length > 0 && groupPerson.getHazardFactorCode()!=null){
+                        for (int i = 0; i < groupPerson.getHazardFactorCode().length; i++) {
+                            code += groupPerson.getHazardFactorCode()[i]+"|";
+                        }
+                    }
+                    if (code.length()>0){
+                        code = code.substring(0,code.length()-1);
+                    }
+                    reviewProject.setHazardFactorCode(code);
                     reviewProject.setCreateId(securityUtil.getCurrUser().getId());
                     reviewProject.setCreateTime(new Date());
                     //生成编号
@@ -295,6 +478,7 @@ public class TReviewProjectController {
                             queryWrapperReviewProject.eq("portfolio_project_id", portfolioId);
                             queryWrapperReviewProject.eq("group_id", groupPerson.getGroupId());
                             queryWrapperReviewProject.eq("del_flag", 0);
+                            queryWrapperReviewProject.orderByAsc("create_time");
                             queryWrapperReviewProject.select("id");
                             List<TReviewProject> reviewProjects = tReviewProjectService.list(queryWrapperReviewProject);
                             if(reviewProjects != null && reviewProjects.size() > 0) {
@@ -338,17 +522,23 @@ public class TReviewProjectController {
                                         tOrderGroupItemProject.setInConclusion(tBaseProject.getInConclusion());
                                         tOrderGroupItemProject.setInReport(tBaseProject.getInReport());
                                         tOrderGroupItemProject.setRelationCode(tBaseProject.getRelationCode());
-                                        tOrderGroupItemProject.setGroupOrderId(groupPerson.getId());
+//                                        tOrderGroupItemProject.setGroupOrderId(groupPerson.getId());
+                                        tOrderGroupItemProject.setGroupOrderId(reviewPersonId);
                                         tOrderGroupItemProject.setBaseProjectId(tBaseProject.getId());
                                         projectArrayList.add(tOrderGroupItemProject);
                                     }
                                 }
-                                itOrderGroupItemProjectService.saveBatch(projectArrayList);
+                                Boolean flag = itOrderGroupItemProjectService.saveBatch(projectArrayList);
+                                if(!flag){
+                                    TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                                    return ResultUtil.error("保存失败：" + "保存复检项目失败，请重新保存");
+                                }
                             }
 
                         }
                     }
                     else{
+                        TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
                         return ResultUtil.error("保存失败：" + "保存复检项目失败，请联系管理员");
                     }
 
@@ -357,21 +547,10 @@ public class TReviewProjectController {
             }
 
 
-            //更新人员复查状态
-            TGroupPerson byId = itGroupPersonService.getById(groupPerson.getId());
-            if (byId != null) {
-                byId.setIsRecheck(1);
-                byId.setReviewStatu(0);//新增复查项目后 重置复查状态
-                byId.setUpdateTime(new Date());
-                byId.setUpdateId(securityUtil.getCurrUser().getId());
-                /*//更新体检状态(添加复查项目后 状态更新到分诊环节 进行项目复查)
-                byId.setIsPass(2);
-                byId.setStatu(0);*/
-                itGroupPersonService.updateById(byId);
-            }
             return ResultUtil.data("保存成功");
         } catch (Exception e) {
             e.printStackTrace();
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             return ResultUtil.error("保存异常" + e.getMessage());
         }
     }

@@ -146,4 +146,7 @@ public class TPortfolioProject implements Serializable {
     @ApiModelProperty(value = "lis系统对应编码")
     private String lisCode;
 
+    @ApiModelProperty(value = "部位名称")
+    private String deptName;
+
 }

@@ -30,6 +30,15 @@
             <version>3.7</version>
         </dependency>
 
+        <!-- https://mvnrepository.com/artifact/net.sourceforge.jexcelapi/jxl -->
+        <!--生成excel文件-->
+        <dependency>
+            <groupId>net.sourceforge.jexcelapi</groupId>
+            <artifactId>jxl</artifactId>
+            <version>2.6.12</version>
+        </dependency>
+
+
 
         <!--健康体检Excel导入人员引入-->
         <dependency>
@@ -80,7 +89,7 @@
             <artifactId>poi-ooxml-schemas</artifactId>
             <version>4.1.2</version>
         </dependency>
-<!--        条形码生成-->
+        <!--        条形码生成-->
         <dependency>
             <groupId>com.google.zxing</groupId>
             <artifactId>core</artifactId>
@@ -98,7 +107,6 @@
             <artifactId>dynamic-datasource-spring-boot-starter</artifactId>
             <version>2.5.4</version>
         </dependency>
-
         <dependency>
             <groupId>com.aspose</groupId>
             <artifactId>aspose-words</artifactId>
@@ -118,6 +126,18 @@
             <version>1.3.2</version>
         </dependency>
 
+        <dependency>
+            <groupId>fr.opensagres.xdocreport</groupId>
+            <artifactId>fr.opensagres.poi.xwpf.converter.pdf-gae</artifactId>
+            <version>2.0.2</version>
+        </dependency>
+
+        <!--添加本地的jacob.jar包-->
+        <dependency>
+            <groupId>com.jacob</groupId>
+            <artifactId>jacob</artifactId>
+            <version>1.18</version>
+        </dependency>
     </dependencies>
 
 </project>

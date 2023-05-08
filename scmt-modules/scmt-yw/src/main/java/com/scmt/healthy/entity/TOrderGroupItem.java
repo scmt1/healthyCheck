@@ -138,6 +138,9 @@ public class TOrderGroupItem implements Serializable {
     @ApiModelProperty(value = "附件地址")
     private String url;
 
+    @ApiModelProperty(value = "检查部位名称")
+    private String deptName;
+
     @ApiModelProperty(value = "体检编号")
     @TableField(exist = false)
     private String testNum;

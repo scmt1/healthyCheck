@@ -17,7 +17,7 @@
     </sql>
 
     <select id="getOneByWhere" resultType="com.scmt.healthy.entity.TBarcode">
-        SELECT * FROM t_barcode WHERE DAY(create_time) = DAY(NOW()) AND type = 1 ORDER BY create_time DESC,barcode DESC LIMIT 1
+        SELECT * FROM t_barcode WHERE DATE_FORMAT(create_time,'%Y-%m-%d') = DATE_FORMAT(now(),'%Y-%m-%d') AND type = 1 ORDER BY create_time DESC,barcode DESC LIMIT 1
     </select>
     <select id="getOneByTestNum" resultType="com.scmt.healthy.entity.TBarcode">
         SELECT * FROM t_barcode WHERE DAY(create_time) = DAY(NOW()) AND type = 2 ORDER BY create_time DESC,barcode DESC LIMIT 1

@@ -6,6 +6,10 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.scmt.healthy.entity.TDepartResult;
+import com.scmt.healthy.entity.TPortfolioProject;
+import com.scmt.healthy.entity.TReviewPerson;
+import com.scmt.healthy.mapper.TPortfolioProjectMapper;
+import com.scmt.healthy.mapper.TReviewPersonMapper;
 import com.scmt.healthy.service.ITDepartResultService;
 import com.scmt.core.common.vo.PageVo;
 import com.scmt.core.common.vo.SearchVo;
@@ -22,6 +26,7 @@ import java.util.List;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * @author
@@ -31,15 +36,31 @@ public class TDepartResultServiceImpl extends ServiceImpl<TDepartResultMapper, T
     @Autowired
     @SuppressWarnings("SpringJavaAutowiringInspection")
     private TDepartResultMapper tDepartResultMapper;
+    @Autowired
+    @SuppressWarnings("SpringJavaAutowiringInspection")
+    private TReviewPersonMapper tReviewPersonMapper;
+    @Autowired
+    @SuppressWarnings("SpringJavaAutowiringInspection")
+    private TPortfolioProjectMapper tPortfolioProjectMapper;
 
     @Override
     public List<TDepartResult> queryTDepartResultList(TDepartResult tDepartResult, SearchVo searchVo) {
         if(tDepartResult != null && tDepartResult.getGroupItemName() != null && tDepartResult.getGroupItemName().indexOf("复") > -1){
-            QueryWrapper<TDepartResult> queryWrapper = new QueryWrapper<>();
-            queryWrapper = LikeAllFeild(tDepartResult, searchVo);
-            queryWrapper.orderByAsc("check_date");
-            List<TDepartResult> result = tDepartResultMapper.selectList(queryWrapper);
-            return result;
+            QueryWrapper<TReviewPerson> tReviewPersonQueryWrapper = new QueryWrapper<>();
+            tReviewPersonQueryWrapper.eq("del_flag",0);
+            tReviewPersonQueryWrapper.eq("old_person_id",tDepartResult.getPersonId());
+            TReviewPerson tReviewPerson = tReviewPersonMapper.selectOne(tReviewPersonQueryWrapper);
+            if(tReviewPerson!=null && tReviewPerson.getId()!=null && StringUtils.isNotBlank(tReviewPerson.getId())){
+                tDepartResult.setPersonId(tReviewPerson.getId());
+                QueryWrapper<TDepartResult> queryWrapper = new QueryWrapper<>();
+                queryWrapper = LikeAllFeild(tDepartResult, searchVo);
+                queryWrapper.orderByAsc("check_date");
+                List<TDepartResult> result = tDepartResultMapper.selectList(queryWrapper);
+                return result;
+            }else{
+                List<TDepartResult> result = new ArrayList<>();
+                return result;
+            }
         }else{
             List<TDepartResult> result = tDepartResultMapper.queryTDepartResultList(tDepartResult.getPersonId(),tDepartResult.getGroupId());
             return result;
@@ -98,6 +119,12 @@ public class TDepartResultServiceImpl extends ServiceImpl<TDepartResultMapper, T
     @Override
     public Integer queryTDepartResultByPersonId(List<String> groupItemIdList, String personId) {
         return tDepartResultMapper.queryTDepartResultByPersonId(groupItemIdList, personId);
+    }
+
+    @Override
+    public List<TDepartResult> queryTDepartResultStatistics(String startDate, String endDate, List<String> officeIds, String dept) {
+        List<TDepartResult> tDepartResults = tDepartResultMapper.queryTDepartResultStatistics(startDate, endDate, officeIds,dept);
+        return tDepartResults;
     }
 
     @Override

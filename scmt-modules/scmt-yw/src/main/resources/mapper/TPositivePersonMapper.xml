@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scmt.healthy.mapper.TPositivePersonMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.scmt.healthy.entity.TPositivePerson">
+        <id column="id" property="id" />
+        <result column="person_id" property="personId" />
+        <result column="create_id" property="createId" />
+        <result column="update_time" property="updateTime" />
+        <result column="update_id" property="updateId" />
+        <result column="positive_name" property="positiveName" />
+        <result column="positive_suggestion" property="positiveSuggestion" />
+        <result column="heavy" property="heavy" />
+        <result column="conclusion_type" property="conclusionType" />
+        <result column="create_time" property="createTime" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, person_id, create_id, update_time, update_id, positive_name, positive_suggestion, heavy, conclusion_type, create_time
+    </sql>
+    <select id="getByPersonId" resultType="com.scmt.healthy.entity.TPositivePerson">
+        select * from t_positive_person where person_id = #{personId} order by order_num
+    </select>
+
+</mapper>

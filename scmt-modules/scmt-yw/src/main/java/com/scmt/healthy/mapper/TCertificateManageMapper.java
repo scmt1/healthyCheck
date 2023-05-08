@@ -34,4 +34,7 @@ public interface TCertificateManageMapper extends BaseMapper<TCertificateManage>
      */
     IPage<TCertificateManage> queryTCertificateManageListByPage(@Param(Constants.WRAPPER) QueryWrapper<TCertificateManage> queryWrapper, @Param("page") Page page);
 
+    List<TCertificateManage> getByPersonIdList(@Param(Constants.WRAPPER) QueryWrapper<TCertificateManage> queryWrapper);
+
+    String findMaxOldNum();
 }

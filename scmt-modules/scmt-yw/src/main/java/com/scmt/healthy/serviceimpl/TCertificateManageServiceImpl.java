@@ -1,28 +1,23 @@
 package com.scmt.healthy.serviceimpl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
-import com.scmt.healthy.entity.TCertificateManage;
-import com.scmt.healthy.entity.TUnitReport;
-import com.scmt.healthy.service.ITCertificateManageService;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.scmt.core.common.vo.PageVo;
 import com.scmt.core.common.vo.SearchVo;
-import com.scmt.healthy.mapper.TCertificateManageMapper;
 import com.scmt.core.utis.FileUtil;
+import com.scmt.healthy.entity.TCertificateManage;
+import com.scmt.healthy.entity.TGroupPerson;
+import com.scmt.healthy.mapper.TCertificateManageMapper;
+import com.scmt.healthy.service.ITCertificateManageService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import javax.servlet.http.HttpServletResponse;
-
-import org.springframework.stereotype.Service;
-import org.springframework.beans.factory.annotation.Autowired;
-
-import java.util.LinkedHashMap;
-import java.util.List;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author
@@ -50,6 +45,7 @@ public class TCertificateManageServiceImpl extends ServiceImpl<TCertificateManag
         if (tCertificateManage != null) {
             queryWrapper = LikeAllField(tCertificateManage, searchVo);
         }
+        queryWrapper.orderByAsc("t_group_person.print_state");
 //        IPage<TCertificateManage> result = tCertificateManageMapper.selectPage(pageData, queryWrapper);
         IPage<TCertificateManage> result = tCertificateManageMapper.queryTCertificateManageListByPage(queryWrapper, pageData);
         return result;
@@ -81,6 +77,20 @@ public class TCertificateManageServiceImpl extends ServiceImpl<TCertificateManag
             mapList.add(map);
         }
         FileUtil.createExcel(mapList, "exel.xlsx", response);
+    }
+
+
+    @Override
+    public List<TCertificateManage> getByTCertificateManageList(String[] ids) {
+        QueryWrapper<TCertificateManage> queryWrapper = new QueryWrapper<>();
+        queryWrapper.in("t_certificate_manage.person_id",ids);
+        List<TCertificateManage> byPersonIdList = tCertificateManageMapper.getByPersonIdList(queryWrapper);
+        return byPersonIdList;
+    }
+
+    @Override
+    public String findMaxOldNum() {
+        return tCertificateManageMapper.findMaxOldNum();
     }
 
     /**
@@ -148,12 +158,53 @@ public class TCertificateManageServiceImpl extends ServiceImpl<TCertificateManag
         if (StringUtils.isNotBlank(tCertificateManage.getPersonId())) {
             queryWrapper.and(i -> i.like("t_certificate_manage.person_id", tCertificateManage.getPersonId()));
         }
-        if (searchVo != null) {
-            if (searchVo.getStartDate() != null && searchVo.getEndDate() != null) {
-                queryWrapper.lambda().and(i -> i.between(TCertificateManage::getCreateTime, searchVo.getStartDate(), searchVo.getEndDate()));
+        if (StringUtils.isNotBlank(tCertificateManage.getIdCard())){
+            queryWrapper.and(i -> i.like("t_group_person.id_card", tCertificateManage.getIdCard()));
+        }
+        if (tCertificateManage.getIsUpload()!=null){
+            if (tCertificateManage.getIsUpload()==0){
+                queryWrapper.and(i -> i.like("t_certificate_manage.is_upload", tCertificateManage.getIsUpload())).or(i -> i.isNull("t_certificate_manage.is_upload"));
+            }else {
+                queryWrapper.and(i -> i.like("t_certificate_manage.is_upload", tCertificateManage.getIsUpload()));
             }
         }
-        queryWrapper.lambda().and(i -> i.eq(TCertificateManage::getDelFlag, 0));
+        if (tCertificateManage.getPrintState()!=null) {
+            if (tCertificateManage.getPrintState()==0){
+                queryWrapper.and(i -> i.like("t_group_person.print_state", tCertificateManage.getPrintState())).or(i -> i.isNull("t_group_person.print_state"));
+            }else {
+                queryWrapper.and(i -> i.like("t_group_person.print_state", tCertificateManage.getPrintState()));
+            }
+
+        }
+
+        if (searchVo != null) {
+            SimpleDateFormat format = new SimpleDateFormat();
+            if (StringUtils.isNotBlank(searchVo.getStartDate()) && StringUtils.isNotBlank(searchVo.getEndDate())) {
+                queryWrapper.and(i->i.ge("t_group_person.regist_date",searchVo.getStartDate()));
+                queryWrapper.and(i->i.le("t_group_person.regist_date",searchVo.getEndDate()));
+            }
+            //当天
+            else if (StringUtils.isNotBlank(searchVo.getStartDate()) && StringUtils.isBlank(searchVo.getEndDate())) {
+                SimpleDateFormat sdf1=new SimpleDateFormat("yyyy-MM-dd");
+                String date =sdf1.format(new Date());
+                date =date+" 00:00:00";
+                String finalDate = date;
+                queryWrapper.and(i->i.ge("t_group_person.regist_date",finalDate));
+                queryWrapper.and(i->i.le("t_group_person.regist_date",searchVo.getStartDate()));
+            }
+            //当月
+            else if (StringUtils.isBlank(searchVo.getStartDate()) && StringUtils.isNotBlank(searchVo.getEndDate())) {
+                SimpleDateFormat sdf1=new SimpleDateFormat("yyyy-MM");
+                String date =sdf1.format(new Date());
+                date =date+"-01 00:00:00";
+                String finalDate = date;
+                queryWrapper.and(i->i.ge("t_group_person.regist_date",finalDate));
+                queryWrapper.and(i->i.le("t_group_person.regist_date",searchVo.getEndDate()));
+            }
+        }
+
+//        queryWrapper.lambda().and(i -> i.eq(TCertificateManage::getDelFlag, 0));
+        queryWrapper.and(i -> i.like("t_certificate_manage.del_flag", 0));
         return queryWrapper;
 
     }

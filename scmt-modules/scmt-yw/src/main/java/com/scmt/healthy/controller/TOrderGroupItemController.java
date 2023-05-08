@@ -221,6 +221,7 @@ public class TOrderGroupItemController {
             QueryWrapper<TOrderGroupItem> itemQueryWrapper = new QueryWrapper<>();
             itemQueryWrapper.eq("group_id", tOrderGroupItem.getGroupId());
             itemQueryWrapper.eq("del_flag",0);
+            itemQueryWrapper.orderByAsc("order_num").orderByAsc("name");
             List<TOrderGroupItem> list = tOrderGroupItemService.list(itemQueryWrapper);
             return ResultUtil.data(list);
         } catch (Exception e) {

@@ -45,4 +45,6 @@ public interface IRelationPersonProjectCheckService extends IService<RelationPer
 
     List<TOrderGroupItem> getNoRegistProjectData(String personId, List<String> deparmentIds);
 
+    List<TOrderGroupItem> getNoRegistProjectDataReview(String personId, List<String> deparmentIds);
+
 }

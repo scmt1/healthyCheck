@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
+import com.scmt.healthy.entity.TGroupPerson;
 import com.scmt.healthy.entity.TPastMedicalHistory;
 import com.scmt.healthy.service.ITPastMedicalHistoryService;
 import com.scmt.core.common.vo.PageVo;
@@ -76,6 +77,14 @@ public class TPastMedicalHistoryServiceImpl extends ServiceImpl<TPastMedicalHist
             mapList.add(map);
         }
         FileUtil.createExcel(mapList, "exel.xlsx", response);
+    }
+
+    @Override
+    public List<TPastMedicalHistory> getByTPastMedicalHistoryControllerList(String[] ids) {
+        QueryWrapper<TPastMedicalHistory> queryWrapper = new QueryWrapper<>();
+        queryWrapper.in("t_past_medical_history.person_id",ids);
+        List<TPastMedicalHistory> byPersonIdList = tPastMedicalHistoryMapper.getByPersonIdList(queryWrapper);
+        return byPersonIdList;
     }
 
     /**

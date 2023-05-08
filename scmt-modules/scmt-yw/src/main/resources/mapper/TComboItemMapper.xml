@@ -20,7 +20,8 @@
         t_portfolio_project.specimen,
         t_portfolio_project.diagnostic,
         t_portfolio_project.office_id,
-        t_portfolio_project.office_name
+        t_portfolio_project.office_name,
+        t_portfolio_project.dept_name
         FROM t_combo_item
         LEFT JOIN t_portfolio_project ON t_portfolio_project.id = t_combo_item.portfolio_project_id
         ${ew.customSqlSegment}

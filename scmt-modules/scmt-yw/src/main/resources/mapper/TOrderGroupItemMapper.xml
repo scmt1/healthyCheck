@@ -62,8 +62,17 @@
              ) a
     </select>
 
+    <select id="getAllCheckCountReview" resultType="integer">
+        SELECT COUNT(0) AS num
+        FROM t_review_project
+        WHERE group_id = #{groupId}
+           AND person_id = #{personId}
+           AND del_flag = 0
+           AND is_pass = 2
+    </select>
+
     <select id="getDepartResultCount" resultType="integer">
-        SELECT count(0) FROM (SELECT count(0) FROM t_depart_result WHERE person_id = #{personId}
+        SELECT count(0) FROM (SELECT count(0) FROM t_depart_result WHERE person_id = #{personId} and del_flag = 0 and diagnose_sum != #{giveUp}
         and group_item_id IN (
             SELECT id FROM t_order_group_item WHERE group_id =#{groupId} AND del_flag = 0
             union

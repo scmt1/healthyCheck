@@ -9,6 +9,7 @@ import com.scmt.healthy.entity.TGroupPerson;
 
 import javax.servlet.http.HttpServletResponse;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author
@@ -72,4 +73,13 @@ public interface ITDepartResultService extends IService<TDepartResult> {
      * @return 返回获取结果
      */
     Integer queryTDepartResultByPersonId(List<String> groupItemIdList, String personId);
+
+    /**
+     * 查询科室已检查项目数量
+     * @param startDate 开始时间
+     * @param endDate 结束时间
+     * @param officeIds 科室集合
+     * @return
+     */
+    List<TDepartResult> queryTDepartResultStatistics(String startDate, String endDate, List<String> officeIds, String dept);
 }

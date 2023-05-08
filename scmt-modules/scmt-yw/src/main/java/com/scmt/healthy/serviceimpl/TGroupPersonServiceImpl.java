@@ -1,24 +1,25 @@
 package com.scmt.healthy.serviceimpl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.scmt.core.common.vo.PageVo;
 import com.scmt.core.common.vo.SearchVo;
-import com.scmt.healthy.entity.TGroupPerson;
-import com.scmt.healthy.mapper.TGroupPersonMapper;
 import com.scmt.core.utis.FileUtil;
+import com.scmt.healthy.common.SocketConfig;
+import com.scmt.healthy.entity.TGroupPerson;
+import com.scmt.healthy.entity.TInspectionRecord;
+import com.scmt.healthy.entity.TReviewPerson;
+import com.scmt.healthy.mapper.TGroupPersonMapper;
+import com.scmt.healthy.service.ITGroupPersonService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import javax.servlet.http.HttpServletResponse;
-
-import com.scmt.healthy.service.ITGroupPersonService;
-import org.springframework.stereotype.Service;
-import org.springframework.beans.factory.annotation.Autowired;
-
-import java.util.*;
 import java.text.SimpleDateFormat;
+import java.util.*;
 
 /**
  * @author
@@ -28,6 +29,12 @@ public class TGroupPersonServiceImpl extends ServiceImpl<TGroupPersonMapper, TGr
     @Autowired
     @SuppressWarnings("SpringJavaAutowiringInspection")
     private TGroupPersonMapper tGroupPersonMapper;
+
+    /**
+     * socket配置
+     */
+    @Autowired
+    public SocketConfig socketConfig;
 
     @Override
     public IPage<TGroupPerson> queryTGroupPersonListByPage(TGroupPerson tGroupPerson, SearchVo searchVo, PageVo pageVo) {
@@ -155,6 +162,7 @@ public class TGroupPersonServiceImpl extends ServiceImpl<TGroupPersonMapper, TGr
         if (tGroupPerson.getIsWzCheck() != null) {
             queryWrapper.and(i -> i.ne("physical_type", "健康体检"));
         }
+
         String officeIds = "";
         if (officeId != null) {
             for (String s : officeId) {
@@ -185,7 +193,57 @@ public class TGroupPersonServiceImpl extends ServiceImpl<TGroupPersonMapper, TGr
     }
 
     @Override
+    public Map<String, Object> getGroupPersonInfoReview(String id) {
+        return tGroupPersonMapper.getGroupPersonInfoReview(id);
+    }
+
+    @Override
     public IPage<TGroupPerson> queryNoCheckProjectPersonList(TGroupPerson tGroupPerson, SearchVo searchVo, PageVo pageVo) {
+            int page = 1;
+            int limit = 10;
+            if (pageVo != null) {
+                if (pageVo.getPageNumber() != 0) {
+                    page = pageVo.getPageNumber();
+                }
+                if (pageVo.getPageSize() != 0) {
+                    limit = pageVo.getPageSize();
+                }
+            }
+            Page<TGroupPerson> pageData = new Page<>(page, limit);
+            QueryWrapper<TGroupPerson> queryWrapper = new QueryWrapper<>();
+            if (tGroupPerson != null) {
+                queryWrapper = LikeAllFeild1(tGroupPerson, searchVo);
+            }
+            queryWrapper.groupBy("t_group_person.id");//按人员id分组
+            IPage<TGroupPerson> result = tGroupPersonMapper.queryNoCheckProjectPersonList(queryWrapper, pageData);
+            return result;
+    }
+
+    @Override
+    public IPage<TReviewPerson> queryNoCheckProjectPersonReviewList(TGroupPerson tGroupPerson, SearchVo searchVo, PageVo pageVo) {
+        int page = 1;
+        int limit = 10;
+        if (pageVo != null) {
+            if (pageVo.getPageNumber() != 0) {
+                page = pageVo.getPageNumber();
+            }
+            if (pageVo.getPageSize() != 0) {
+                limit = pageVo.getPageSize();
+            }
+        }
+        Page<TReviewPerson> pageData = new Page<>(page, limit);
+        QueryWrapper<TReviewPerson> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("t_review_person.dept", tGroupPerson.getGroupUnitName());
+        if (tGroupPerson != null) {
+            queryWrapper = LikeAllFeild2(tGroupPerson, searchVo);
+        }
+
+        IPage<TReviewPerson> result = tGroupPersonMapper.queryNoCheckProjectPersonReviewList(queryWrapper, pageData);
+        return result;
+    }
+
+    @Override
+    public IPage<TGroupPerson> queryNoCheckProjectLedgerPersonList(TGroupPerson tGroupPerson, SearchVo searchVo, PageVo pageVo) {
         int page = 1;
         int limit = 10;
         if (pageVo != null) {
@@ -201,9 +259,11 @@ public class TGroupPersonServiceImpl extends ServiceImpl<TGroupPersonMapper, TGr
         if (tGroupPerson != null) {
             queryWrapper = LikeAllFeild1(tGroupPerson, searchVo);
         }
-        IPage<TGroupPerson> result = tGroupPersonMapper.queryNoCheckProjectPersonList(queryWrapper, pageData);
+        queryWrapper.groupBy("t_group_person.id");//按人员id分组
+        IPage<TGroupPerson> result = tGroupPersonMapper.queryNoCheckProjectLedgerPersonList(queryWrapper, pageData);
         return result;
     }
+
 
     @Override
     public IPage<TGroupPerson> queryStatisticPersonList(TGroupPerson tGroupPerson, SearchVo searchVo, PageVo pageVo) {
@@ -256,9 +316,39 @@ public class TGroupPersonServiceImpl extends ServiceImpl<TGroupPersonMapper, TGr
         return tGroupPersonMapper.queryPersonDataListByOrderId(orderId);
     }
 
+
+    @Override
+    public List<TGroupPerson> queryPersonDataListByUnitName(String personId,Integer isRecheck) {
+        if (isRecheck==1){
+            QueryWrapper<TReviewPerson> queryWrapper = new QueryWrapper<>();
+            if (personId!=null&&!personId.equals("")){
+                String[] split = personId.split(",");
+                queryWrapper.and(i -> i.in("t_review_person.id",split));
+            }
+            return tGroupPersonMapper.getNoCheckProjectPersonReviewList(queryWrapper);
+        }else {
+            QueryWrapper<TGroupPerson> queryWrapper = new QueryWrapper<>();
+            if (personId!=null&&!personId.equals("")){
+                String[] split = personId.split(",");
+                queryWrapper.and(i -> i.in("t_group_person.id",split));
+            }
+            return tGroupPersonMapper.queryNoCheckProjectLedgerPersonList(queryWrapper);
+        }
+    }
+
     @Override
     public List<Map<String, Object>> getGroupPersonInfoByIds(List<String> ids) {
         return tGroupPersonMapper.getGroupPersonInfoByIds(ids);
+    }
+
+    @Override
+    public List<TInspectionRecord> getGroupPersonOrderNumByIds() {
+        return tGroupPersonMapper.getGroupPersonOrderNumByIds();
+    }
+
+    @Override
+    public List<Map<String, Object>> getGroupPersonInfoByIdsTypeStatus(List<String> ids) {
+        return tGroupPersonMapper.getGroupPersonInfoByIdsTypeStatus(ids);
     }
 
     @Override
@@ -306,10 +396,22 @@ public class TGroupPersonServiceImpl extends ServiceImpl<TGroupPersonMapper, TGr
 
         if (tGroupPerson != null) {
             tGroupPerson.setIsPass(null);
-            queryWrapper = LikeAllFeild(tGroupPerson, searchVo);
+//            queryWrapper = LikeAllFeild(tGroupPerson, searchVo);
+            if(StringUtils.isNotBlank(tGroupPerson.getPhysicalType())){
+                queryWrapper.eq("t_review_person.physical_type",tGroupPerson.getPhysicalType());
+            }
+            if(StringUtils.isNotBlank(tGroupPerson.getPersonName())){
+                queryWrapper.eq("t_review_person.person_name",tGroupPerson.getPersonName());
+            }
+            if(StringUtils.isNotBlank(tGroupPerson.getDept())){
+                queryWrapper.eq("t_review_person.dept",tGroupPerson.getDept());
+            }
+            if(StringUtils.isNotBlank(tGroupPerson.getTestNum())){
+                queryWrapper.eq("t_review_person.test_num",tGroupPerson.getTestNum());
+            }
         }
         if (tGroupPerson.getIsWzCheck() != null) {
-            queryWrapper.and(i -> i.ne("physical_type", "健康体检"));
+            queryWrapper.and(i -> i.ne("t_group_person.physical_type", "健康体检"));
         }
         if(tGroupPerson.getIsCheck() == 0){
             return tGroupPersonMapper.getPersonReviewerCheck(officeId, queryWrapper, pageData,startDate,endDate);
@@ -349,8 +451,77 @@ public class TGroupPersonServiceImpl extends ServiceImpl<TGroupPersonMapper, TGr
                 queryWrapper.eq("review_statu",1);//复查结果 1已出
             }
         }
-        queryWrapper.orderByAsc("diagnosis_date").orderByAsc("person_name");
+//        queryWrapper.orderByAsc("print_state").orderByAsc("diagnosis_date").orderByAsc("person_name");
+//        queryWrapper.orderByAsc("diagnosis_date").orderByAsc("regist_date");
+        queryWrapper.orderByDesc("update_time");
+        queryWrapper.orderByDesc("id");
         IPage<TGroupPerson> result = tGroupPersonMapper.getTGroupPersonInspection(queryWrapper, pageData);
+        return result;
+    }
+
+    @Override
+    public IPage<TGroupPerson> getTGroupPersonInspectionTypeStatus(TGroupPerson tGroupPerson, SearchVo searchVo, PageVo pageVo) {
+        int page = 1;
+        int limit = 10;
+        if (pageVo != null) {
+            if (pageVo.getPageNumber() != 0) {
+                page = pageVo.getPageNumber();
+            }
+            if (pageVo.getPageSize() != 0) {
+                limit = pageVo.getPageSize();
+            }
+        }
+        Page<TReviewPerson> pageData = new Page<>(page, limit);
+        QueryWrapper<TReviewPerson> queryWrapper = new QueryWrapper<>();
+
+        if (tGroupPerson != null) {
+            queryWrapper.and(i -> i.eq("t_review_person.del_flag", 0));
+            if (StringUtils.isNotBlank(tGroupPerson.getDept())) {
+                queryWrapper.eq("t_review_person.dept",tGroupPerson.getDept());
+            }
+            if (StringUtils.isNotBlank(tGroupPerson.getTestNum())) {
+                queryWrapper.eq("t_review_person.test_num",tGroupPerson.getTestNum());
+            }
+            if (StringUtils.isNotBlank(tGroupPerson.getPersonName())) {
+                queryWrapper.eq("t_review_person.person_name",tGroupPerson.getPersonName());
+            }
+            if (StringUtils.isNotBlank(tGroupPerson.getPhysicalType())) {
+                queryWrapper.eq("t_review_person.physical_type",tGroupPerson.getPhysicalType());
+            }
+            if (tGroupPerson.getIsPass()!=null) {
+                queryWrapper.eq("t_review_person.is_pass",tGroupPerson.getIsPass());
+            }
+            if (searchVo != null) {
+                SimpleDateFormat format = new SimpleDateFormat();
+                if (StringUtils.isNotBlank(searchVo.getStartDate()) && StringUtils.isNotBlank(searchVo.getEndDate())) {
+                    queryWrapper.ge("t_review_person.regist_date",searchVo.getStartDate());
+                    queryWrapper.le("t_review_person.regist_date",searchVo.getEndDate());
+                }
+                //当天
+                else if (StringUtils.isNotBlank(searchVo.getStartDate()) && StringUtils.isBlank(searchVo.getEndDate())) {
+                    SimpleDateFormat sdf1=new SimpleDateFormat("yyyy-MM-dd");
+                    String date =sdf1.format(new Date());
+                    date =date+" 00:00:00";
+                    String finalDate = date;
+                    queryWrapper.ge("t_review_person.regist_date",finalDate);
+                    queryWrapper.le("t_review_person.regist_date",searchVo.getStartDate());
+                }
+                //当月
+                else if (StringUtils.isBlank(searchVo.getStartDate()) && StringUtils.isNotBlank(searchVo.getEndDate())) {
+                    SimpleDateFormat sdf1=new SimpleDateFormat("yyyy-MM");
+                    String date =sdf1.format(new Date());
+                    date =date+"-01 00:00:00";
+                    String finalDate = date;
+                    queryWrapper.ge("t_review_person.regist_date",finalDate);
+                    queryWrapper.le("t_review_person.regist_date",searchVo.getEndDate());
+                }
+            }
+        }
+//        queryWrapper.orderByAsc("print_state").orderByAsc("diagnosis_date").orderByAsc("person_name");
+//        queryWrapper.orderByAsc("t_review_person.diagnosis_date").orderByAsc("t_review_person.regist_date");
+        queryWrapper.orderByDesc("t_review_person.update_time");
+        queryWrapper.orderByDesc("t_review_person.id");
+        IPage<TGroupPerson> result = tGroupPersonMapper.getTGroupPersonInspectionTypeStatus(queryWrapper, pageData);
         return result;
     }
 
@@ -371,12 +542,24 @@ public class TGroupPersonServiceImpl extends ServiceImpl<TGroupPersonMapper, TGr
         if (tGroupPerson != null) {
             queryWrapper = LikeAllFeild(tGroupPerson, searchVo);
         }
-        queryWrapper.orderByAsc("t_group_person.regist_date");
+        if(pageVo.getSort()!=null){
+            if(pageVo.getOrder().equals("asc")){
+                queryWrapper.orderByAsc(pageVo.getSort());
+            }
+            else{
+                queryWrapper.orderByDesc(pageVo.getSort());
+            }
+        }
+        else{
+            //queryWrapper.orderByDesc("t_group_person.regist_date");
+            queryWrapper.orderByDesc("t_group_person.update_time");
+            queryWrapper.orderByDesc("t_group_person.id");
+        }
         IPage<TGroupPerson> result = tGroupPersonMapper.getInspectionTGroupPersonList(queryWrapper, pageData);
         return result;
     }
 
-    @Override
+    /*@Override
     public IPage<TGroupPerson> getInspectionTGroupPersonReviewList(TGroupPerson tGroupPerson, SearchVo searchVo, PageVo pageVo) {
         int page = 1;
         int limit = 10;
@@ -412,6 +595,85 @@ public class TGroupPersonServiceImpl extends ServiceImpl<TGroupPersonMapper, TGr
         queryWrapper.orderByAsc("t_group_person.regist_date");
         IPage<TGroupPerson> result = tGroupPersonMapper.getInspectionTGroupPersonReviewList(queryWrapper, pageData);
         return result;
+    }*/
+    @Override
+    public IPage<TGroupPerson> getInspectionTGroupPersonReviewList(TGroupPerson tGroupPerson, SearchVo searchVo, PageVo pageVo) {
+        int page = 1;
+        int limit = 10;
+        if (pageVo != null) {
+            if (pageVo.getPageNumber() != 0) {
+                page = pageVo.getPageNumber();
+            }
+            if (pageVo.getPageSize() != 0) {
+                limit = pageVo.getPageSize();
+            }
+        }
+        Page<TReviewPerson> pageData = new Page<>(page, limit);
+        QueryWrapper<TReviewPerson> queryWrapper = new QueryWrapper<>();
+        if (tGroupPerson != null) {
+            if(tGroupPerson.getIsPass() != null){
+                if(tGroupPerson.getIsPass() == 3){//待总检(复查)
+                    queryWrapper.eq("t_review_person.is_pass",3);
+                }else if(tGroupPerson.getIsPass() == 88){//已总检(复查)
+                    queryWrapper.ge("t_review_person.is_pass",4);
+                }else if(tGroupPerson.getIsPass() == 4){
+                    queryWrapper.eq("t_review_person.is_pass",4);
+                }else if(tGroupPerson.getIsPass() == 5){
+                    queryWrapper.eq("t_review_person.is_pass",5);
+                }else{//在检(复查)
+                    queryWrapper.eq("t_review_person.is_pass",2);
+                }
+            }
+            if(StringUtils.isNotBlank(tGroupPerson.getPhysicalType())){
+                queryWrapper.eq("t_review_person.physical_type",tGroupPerson.getPhysicalType());
+            }
+            if(StringUtils.isNotBlank(tGroupPerson.getPersonName())){
+                queryWrapper.eq("t_review_person.person_name",tGroupPerson.getPersonName());
+            }
+            if(StringUtils.isNotBlank(tGroupPerson.getDept())){
+                queryWrapper.eq("t_review_person.dept",tGroupPerson.getDept());
+            }
+            if(StringUtils.isNotBlank(tGroupPerson.getTestNum())){
+                queryWrapper.eq("t_review_person.test_num",tGroupPerson.getTestNum());
+            }
+        }
+        if (searchVo != null) {
+            SimpleDateFormat format = new SimpleDateFormat();
+            if (StringUtils.isNotBlank(searchVo.getStartDate()) && StringUtils.isNotBlank(searchVo.getEndDate())) {
+                queryWrapper.ge("t_review_person.regist_date",searchVo.getStartDate());
+                queryWrapper.le("t_review_person.regist_date",searchVo.getEndDate());
+//                queryWrapper.lambda().and(i->i.ge(TReviewPerson::getRegistDate,searchVo.getStartDate()));
+//                queryWrapper.lambda().and(i->i.le(TReviewPerson::getRegistDate,searchVo.getEndDate()));
+            }
+            //当天
+            else if (StringUtils.isNotBlank(searchVo.getStartDate()) && StringUtils.isBlank(searchVo.getEndDate())) {
+                SimpleDateFormat sdf1=new SimpleDateFormat("yyyy-MM-dd");
+                String date =sdf1.format(new Date());
+                date =date+" 00:00:00";
+                String finalDate = date;
+                queryWrapper.ge("t_review_person.regist_date",finalDate);
+                queryWrapper.le("t_review_person.regist_date",searchVo.getStartDate());
+//                queryWrapper.lambda().and(i->i.ge(TReviewPerson::getRegistDate,finalDate));
+//                queryWrapper.lambda().and(i->i.le(TReviewPerson::getRegistDate,searchVo.getStartDate()));
+            }
+            //当月
+            else if (StringUtils.isBlank(searchVo.getStartDate()) && StringUtils.isNotBlank(searchVo.getEndDate())) {
+                SimpleDateFormat sdf1=new SimpleDateFormat("yyyy-MM");
+                String date =sdf1.format(new Date());
+                date =date+"-01 00:00:00";
+                String finalDate = date;
+                queryWrapper.ge("t_review_person.regist_date",finalDate);
+                queryWrapper.le("t_review_person.regist_date",searchVo.getEndDate());
+//                queryWrapper.lambda().and(i->i.ge(TReviewPerson::getRegistDate,finalDate));
+//                queryWrapper.lambda().and(i->i.le(TReviewPerson::getRegistDate,searchVo.getEndDate()));
+            }
+        }
+        queryWrapper.eq("t_review_person.del_flag",0);
+//        queryWrapper.orderByAsc("t_review_person.regist_date");
+        queryWrapper.orderByDesc("t_review_person.update_time");
+        queryWrapper.orderByDesc("t_review_person.id");
+        IPage<TGroupPerson> result = tGroupPersonMapper.getInspectionTGroupPersonReviewList(queryWrapper, pageData);
+        return result;
     }
     @Override
     public  TGroupPerson queryTGroupPersonAndResultApp(TGroupPerson tGroupPerson) {
@@ -425,6 +687,15 @@ public class TGroupPersonServiceImpl extends ServiceImpl<TGroupPersonMapper, TGr
         TGroupPerson tGroupPeople =  tGroupPersonMapper.selectOne(queryWrapper);
         return tGroupPeople;
     }
+
+    @Override
+    public List<TGroupPerson> getByPersonIdList(String[] ids) {
+        QueryWrapper<TGroupPerson> queryWrapper = new QueryWrapper<>();
+        queryWrapper.in("t_group_person.id",ids);
+        List<TGroupPerson> byPersonIdList = tGroupPersonMapper.getByPersonIdList(queryWrapper);
+        return byPersonIdList;
+    }
+
     /**
      * 功能描述：构建模糊查询
      *
@@ -435,10 +706,11 @@ public class TGroupPersonServiceImpl extends ServiceImpl<TGroupPersonMapper, TGr
         QueryWrapper<TGroupPerson> queryWrapper = new QueryWrapper<>();
         queryWrapper.and(i -> i.eq("t_group_person.del_flag", 0));
         if (StringUtils.isNotBlank(tGroupPerson.getPersonName())) {
-            queryWrapper.lambda().and(i -> i.like(TGroupPerson::getPersonName, tGroupPerson.getPersonName()));
+//            queryWrapper.and(i -> i.eq("t_group_person.person_name", tGroupPerson.getPersonName()));
+            queryWrapper.and(i -> i.like("t_group_person.person_name", tGroupPerson.getPersonName()));
         }
         if (StringUtils.isNotBlank(tGroupPerson.getSex())) {
-            queryWrapper.lambda().and(i -> i.like(TGroupPerson::getSex, tGroupPerson.getSex()));
+            queryWrapper.and(i -> i.eq("t_group_person.sex", tGroupPerson.getSex()));
         }
         if (StringUtils.isNotBlank(tGroupPerson.getIdCard())) {
             queryWrapper.lambda().and(i -> i.like(TGroupPerson::getIdCard, tGroupPerson.getIdCard()));
@@ -456,7 +728,7 @@ public class TGroupPersonServiceImpl extends ServiceImpl<TGroupPersonMapper, TGr
             queryWrapper.lambda().and(i -> i.like(TGroupPerson::getMobile, tGroupPerson.getMobile()));
         }
         if (StringUtils.isNotBlank(tGroupPerson.getDept())) {
-            queryWrapper.lambda().and(i -> i.eq(TGroupPerson::getDept, tGroupPerson.getDept()));
+            queryWrapper.and(i -> i.eq("t_group_person.dept", tGroupPerson.getDept()));
         }
         if (StringUtils.isNotBlank(tGroupPerson.getWorkNum())) {
             queryWrapper.lambda().and(i -> i.like(TGroupPerson::getWorkNum, tGroupPerson.getWorkNum()));
@@ -480,7 +752,7 @@ public class TGroupPersonServiceImpl extends ServiceImpl<TGroupPersonMapper, TGr
             queryWrapper.lambda().and(i -> i.eq(TGroupPerson::getWorkStateCode, tGroupPerson.getWorkStateCode()));
         }
         if (StringUtils.isNotBlank(tGroupPerson.getTestNum())) {
-            queryWrapper.lambda().and(i -> i.eq(TGroupPerson::getTestNum, tGroupPerson.getTestNum()));
+            queryWrapper.and(i -> i.eq("t_group_person.test_num", tGroupPerson.getTestNum()));
         }
         if (tGroupPerson.getExposureStartDate() != null) {
             queryWrapper.lambda().and(i -> i.like(TGroupPerson::getExposureStartDate, tGroupPerson.getExposureStartDate()));
@@ -501,7 +773,8 @@ public class TGroupPersonServiceImpl extends ServiceImpl<TGroupPersonMapper, TGr
             queryWrapper.lambda().and(i -> i.eq(TGroupPerson::getGroupId, tGroupPerson.getGroupId()).or().eq(TGroupPerson::getOldGroupId, tGroupPerson.getGroupId()));
         }
         if (StringUtils.isNotBlank(tGroupPerson.getPhysicalType())) {
-            queryWrapper.lambda().and(i -> i.eq(TGroupPerson::getPhysicalType, tGroupPerson.getPhysicalType()));
+//            queryWrapper.lambda().and(i -> i.eq(TGroupPerson::getPhysicalType, tGroupPerson.getPhysicalType()));
+            queryWrapper.and(i -> i.eq("t_group_person.physical_type", tGroupPerson.getPhysicalType()));
         }
 
         if (tGroupPerson.getIsCheck() != null) {
@@ -510,9 +783,17 @@ public class TGroupPersonServiceImpl extends ServiceImpl<TGroupPersonMapper, TGr
             }
         }
         if (tGroupPerson.getIsWzCheck() != null) {
-            queryWrapper.lambda().and(i -> i.eq(TGroupPerson::getIsWzCheck, tGroupPerson.getIsWzCheck()));
             if (tGroupPerson.getIsWzCheck() == 1) {
                 tGroupPerson.setIsPass(null);
+                queryWrapper.lambda().and(i -> i.eq(TGroupPerson::getIsWzCheck, tGroupPerson.getIsWzCheck()));
+            }
+            else{
+                if(socketConfig!=null  && socketConfig.getCombinedConsultation()){
+                    queryWrapper.lambda().and(i -> i.eq(TGroupPerson::getIsWzCheck, 0).or().eq(TGroupPerson::getIsWzCheck, 1));
+                }
+                else {
+                    queryWrapper.lambda().and(i -> i.eq(TGroupPerson::getIsWzCheck, tGroupPerson.getIsWzCheck()));
+                }
             }
         }
         if (tGroupPerson.getIsPass() != null) {
@@ -523,10 +804,12 @@ public class TGroupPersonServiceImpl extends ServiceImpl<TGroupPersonMapper, TGr
                 queryWrapper.lambda().and(i -> i.lt(TGroupPerson::getIsPass, 10));
             } else if (tGroupPerson.getIsPass() == 1) {
                 queryWrapper.lambda().and(i -> i.eq(TGroupPerson::getIsPass, 1).or().eq(TGroupPerson::getIsPass, 10));
+                queryWrapper.orderByDesc("t_group_person.create_time");
             } else if (tGroupPerson.getIsPass() == 2) {
                 if (tGroupPerson.getIsCheck() != null) {
                     if (tGroupPerson.getIsCheck() == 0) {
-                        queryWrapper.lambda().and(i -> i.ge(TGroupPerson::getIsPass, tGroupPerson.getIsPass()));
+//                        queryWrapper.lambda().and(i -> i.ge(TGroupPerson::getIsPass, tGroupPerson.getIsPass()));
+                        queryWrapper.lambda().and(i -> i.eq(TGroupPerson::getIsPass, tGroupPerson.getIsPass()));
                     }else{
                         queryWrapper.lambda().and(i -> i.eq(TGroupPerson::getIsPass, tGroupPerson.getIsPass()));
                     }
@@ -599,11 +882,23 @@ public class TGroupPersonServiceImpl extends ServiceImpl<TGroupPersonMapper, TGr
         if (StringUtils.isNotBlank(tGroupPerson.getSex())) {
             queryWrapper.lambda().and(i -> i.like(TGroupPerson::getSex, tGroupPerson.getSex()));
         }
+        if (StringUtils.isNotBlank(tGroupPerson.getHazardFactors())) {
+            queryWrapper.lambda().and(i -> i.like(TGroupPerson::getHazardFactors, tGroupPerson.getHazardFactors()));
+        }
+        if (StringUtils.isNotBlank(tGroupPerson.getHazardFactorsText())) {
+            queryWrapper.lambda().and(i -> i.like(TGroupPerson::getHazardFactorsText, tGroupPerson.getHazardFactorsText()));
+        }
         if (StringUtils.isNotBlank(tGroupPerson.getPhysicalType())) {
             queryWrapper.lambda().and(i -> i.eq(TGroupPerson::getPhysicalType, tGroupPerson.getPhysicalType()));
         }
         if (tGroupPerson.getOrderIdList().size() > 0) {
             queryWrapper.and(i -> i.in("t_group_person.order_id", tGroupPerson.getOrderIdList()));
+        }
+        if (StringUtils.isNotBlank(tGroupPerson.getGroupUnitName())) {
+            queryWrapper.and(i -> i.eq("t_group_person.dept", tGroupPerson.getGroupUnitName()));
+        }
+        if (StringUtils.isNotBlank(tGroupPerson.getId())) {
+            queryWrapper.and(i -> i.eq("t_group_person.id", tGroupPerson.getId()));
         }
         if (StringUtils.isNotBlank(tGroupPerson.getGroupId())) {
             queryWrapper.and(i -> i.eq("t_group_person.group_id", tGroupPerson.getGroupId()));
@@ -611,9 +906,11 @@ public class TGroupPersonServiceImpl extends ServiceImpl<TGroupPersonMapper, TGr
         if (tGroupPerson.getAge() != null) {
             queryWrapper.lambda().and(i -> i.like(TGroupPerson::getAge, tGroupPerson.getAge()));
         }
-
         if (tGroupPerson.getStatu() != null) {
             queryWrapper.lambda().and(i -> i.eq(TGroupPerson::getStatu, tGroupPerson.getStatu()));
+        }
+        if (StringUtils.isNotBlank(tGroupPerson.getConclusionCode())) {
+            queryWrapper.and(i -> i.eq("t_inspection_record.conclusion_code", tGroupPerson.getConclusionCode()));
         }
         if (tGroupPerson.getIsPass() != null) {
             if (tGroupPerson.getIsPass() == 99) {//未登记
@@ -621,14 +918,16 @@ public class TGroupPersonServiceImpl extends ServiceImpl<TGroupPersonMapper, TGr
             } else if (tGroupPerson.getIsPass() == 87) {//待总检
                 queryWrapper.and(i -> i.eq("t_group_person.is_pass", 3));
             } else if (tGroupPerson.getIsPass() == 88) {//已总检
-                queryWrapper.and(i -> i.eq("t_group_person.is_pass", 4)
-                        .or().eq("t_group_person.is_pass", 5));
+                /*queryWrapper.and(i -> i.eq("t_group_person.is_pass", 4)
+                        .or().eq("t_group_person.is_pass", 5));*/
+                queryWrapper.and(i -> i.ge("t_group_person.is_pass", 4));
             } else if (tGroupPerson.getIsPass() == 89) {//全部
-                queryWrapper.and(i -> i.eq("t_group_person.is_pass", 1)
+               /* queryWrapper.and(i -> i.eq("t_group_person.is_pass", 1)
                         .or().eq("t_group_person.is_pass", 2)
                         .or().eq("t_group_person.is_pass", 3)
                         .or().eq("t_group_person.is_pass", 4)
-                        .or().eq("t_group_person.is_pass", 5));
+                        .or().eq("t_group_person.is_pass", 5));*/
+                queryWrapper.and(i -> i.ge("t_group_person.is_pass", 1));
             } else {//在体检
                 queryWrapper.and(i -> i.eq("t_group_person.is_pass", tGroupPerson.getIsPass()));
             }
@@ -666,10 +965,114 @@ public class TGroupPersonServiceImpl extends ServiceImpl<TGroupPersonMapper, TGr
         return queryWrapper;
     }
 
+    /**
+     * 功能描述：构建模糊查询
+     *
+     * @param tGroupPerson 需要模糊查询的信息
+     * @return 返回查询
+     */
+    public QueryWrapper<TReviewPerson> LikeAllFeild2(TGroupPerson tGroupPerson, SearchVo searchVo) {
+        QueryWrapper<TReviewPerson> queryWrapper = new QueryWrapper<>();
+        if (StringUtils.isNotBlank(tGroupPerson.getPersonName())) {
+            queryWrapper.and(i -> i.eq("t_review_person.person_name", tGroupPerson.getPersonName()));
+        }
+        if (StringUtils.isNotBlank(tGroupPerson.getGroupUnitName())) {
+            queryWrapper.and(i -> i.eq("t_review_person.dept", tGroupPerson.getGroupUnitName()));
+        }
+        if (StringUtils.isNotBlank(tGroupPerson.getPhysicalType())) {
+            queryWrapper.and(i -> i.eq("t_review_person.physical_type", tGroupPerson.getPhysicalType()));
+        }
+        if (tGroupPerson.getOrderIdList().size() > 0) {
+            queryWrapper.and(i -> i.in("t_review_person.order_id", tGroupPerson.getOrderIdList()));
+        }
+        if (StringUtils.isNotBlank(tGroupPerson.getDept())) {
+            queryWrapper.and(i -> i.eq("t_review_person.person_name", tGroupPerson.getGroupUnitName()));
+        }
+        if (StringUtils.isNotBlank(tGroupPerson.getOrderId())) {
+            queryWrapper.and(i -> i.eq("t_review_person.id", tGroupPerson.getOrderId()));
+        }
+        if (StringUtils.isNotBlank(tGroupPerson.getIdCard())) {
+            queryWrapper.and(i -> i.eq("t_review_person.id_card", tGroupPerson.getIdCard()));
+        }
+        if (StringUtils.isNotBlank(tGroupPerson.getTestNum())) {
+            queryWrapper.and(i -> i.eq("t_review_person.test_num", tGroupPerson.getTestNum()));
+        }
+        if (StringUtils.isNotBlank(tGroupPerson.getSex())) {
+            queryWrapper.and(i -> i.eq("t_group_person.sex", tGroupPerson.getSex()));
+        }
+
+        if (StringUtils.isNotBlank(tGroupPerson.getConclusionCode())) {
+            queryWrapper.and(i -> i.eq("t_inspection_record.conclusion_code", tGroupPerson.getConclusionCode()));
+        }
+
+        if (searchVo != null) {
+            SimpleDateFormat format = new SimpleDateFormat();
+            if (StringUtils.isNotBlank(searchVo.getStartDate()) && StringUtils.isNotBlank(searchVo.getEndDate())) {
+                queryWrapper.and(i->i.ge("t_review_person.regist_date",searchVo.getStartDate()));
+                queryWrapper.and(i->i.le("t_review_person.regist_date",searchVo.getEndDate()));
+            }
+            //当天
+            else if (StringUtils.isNotBlank(searchVo.getStartDate()) && StringUtils.isBlank(searchVo.getEndDate())) {
+                SimpleDateFormat sdf1=new SimpleDateFormat("yyyy-MM-dd");
+                String date =sdf1.format(new Date());
+                date =date+" 00:00:00";
+                String finalDate = date;
+                queryWrapper.and(i->i.ge("t_review_person.regist_date",finalDate));
+                queryWrapper.and(i->i.le("t_review_person.regist_date",searchVo.getStartDate()));
+            }
+            //当月
+            else if (StringUtils.isBlank(searchVo.getStartDate()) && StringUtils.isNotBlank(searchVo.getEndDate())) {
+                SimpleDateFormat sdf1=new SimpleDateFormat("yyyy-MM");
+                String date =sdf1.format(new Date());
+                date =date+"-01 00:00:00";
+                String finalDate = date;
+                queryWrapper.and(i->i.ge("t_review_person.regist_date",finalDate));
+                queryWrapper.and(i->i.le("t_review_person.regist_date",searchVo.getEndDate()));
+            }
+        }
+
+        if (tGroupPerson.getIsPass() != null) {
+            if (tGroupPerson.getIsPass() == 99) {//未登记
+                queryWrapper.and(i -> i.ne("t_group_person.is_pass", 1));
+            } else if (tGroupPerson.getIsPass() == 87) {//待总检
+                queryWrapper.and(i -> i.eq("t_group_person.is_pass", 3));
+            } else if (tGroupPerson.getIsPass() == 88) {//已总检
+                /*queryWrapper.and(i -> i.eq("t_group_person.is_pass", 4)
+                        .or().eq("t_group_person.is_pass", 5));*/
+                queryWrapper.and(i -> i.ge("t_group_person.is_pass", 4));
+            } else if (tGroupPerson.getIsPass() == 89) {//全部
+               /* queryWrapper.and(i -> i.eq("t_group_person.is_pass", 1)
+                        .or().eq("t_group_person.is_pass", 2)
+                        .or().eq("t_group_person.is_pass", 3)
+                        .or().eq("t_group_person.is_pass", 4)
+                        .or().eq("t_group_person.is_pass", 5));*/
+                queryWrapper.and(i -> i.ge("t_group_person.is_pass", 1));
+            } else {//在体检
+                queryWrapper.and(i -> i.eq("t_group_person.is_pass", tGroupPerson.getIsPass()));
+            }
+        }
+        if (tGroupPerson.getAge() != null) {
+            queryWrapper.and(i -> i.eq("t_group_person.age", tGroupPerson.getAge()));
+        }
+        queryWrapper.and(i -> i.eq("t_group_person.del_flag", 0));
+
+        return queryWrapper;
+    }
+
     @Override
     public Integer updatewAutograph(){
         return tGroupPersonMapper.updatewAutograph();
     }
 
-
+    /**
+     * 体检人员重复提交校验
+     * @param idCard
+     * @param checkDate
+     * @return
+     */
+    @Override
+    public Boolean getGroupPersonRepeatCommit(String idCard, String checkDate) {
+        Integer count = tGroupPersonMapper.selectGroupPersonCountByIdCardAndCheckDate(idCard, checkDate);
+        return count > 0;
+    }
 }

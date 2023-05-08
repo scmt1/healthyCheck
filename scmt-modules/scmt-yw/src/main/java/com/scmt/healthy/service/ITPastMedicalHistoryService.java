@@ -36,4 +36,6 @@ public interface ITPastMedicalHistoryService extends IService<TPastMedicalHistor
 	* @param response response参数
 	*/
 	public void download(TPastMedicalHistory  tPastMedicalHistory, HttpServletResponse response) ;
+
+	List<TPastMedicalHistory> getByTPastMedicalHistoryControllerList(String[] ids);
 }

@@ -1,17 +1,8 @@
 package com.scmt.healthy.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
-
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.annotations.ApiModel;
@@ -19,6 +10,11 @@ import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.springframework.format.annotation.DateTimeFormat;
+
+import java.io.Serializable;
+import java.math.BigDecimal;
+import java.util.Date;
+import java.util.List;
 
 /**
  * <p>
@@ -164,6 +160,12 @@ public class TGroupOrder implements Serializable {
     @ApiModelProperty(value = "订单评价地址")
     private String orderEvaluatePath;
 
+    @ApiModelProperty(value = "基本信息表地址")
+    private String orderInfoPath;
+
+    @ApiModelProperty(value = "人员名单表地址")
+    private String orderPersonDataPath;
+
     @ApiModelProperty(value = "分组数据")
     @TableField(exist = false)
     private List<TOrderGroup> tOrderGroups;
@@ -191,5 +193,21 @@ public class TGroupOrder implements Serializable {
     @ApiModelProperty(value = "所选套餐")
     @TableField(exist = false)
     private List<TCombo> setMealItems;
+
+    @ApiModelProperty(value = "分组人数可以为零")
+    @TableField(exist = false)
+    private Boolean tolerable;
+
+    @ApiModelProperty("公司名称")
+    @TableField(exist = false)
+    private String companyName;
+
+    @ApiModelProperty("人员数组")
+    @TableField(exist = false)
+    private List<TGroupPerson> tGroupPersonData;
+
+    @ApiModelProperty("套餐id")
+    @TableField(exist = false)
+    private String ComboId;
 
 }

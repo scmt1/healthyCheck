@@ -1,27 +1,23 @@
 package com.scmt.healthy.serviceimpl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.scmt.core.common.utils.SecurityUtil;
-import com.scmt.core.vo.RoleDTO;
-import com.scmt.healthy.common.SocketConfig;
-import com.scmt.healthy.entity.TGroupPerson;
-import com.scmt.healthy.mapper.TProTypeMapper;
-import com.scmt.healthy.entity.TGroupOrder;
-import com.scmt.healthy.service.ITGroupOrderService;
 import com.scmt.core.common.vo.PageVo;
 import com.scmt.core.common.vo.SearchVo;
-import com.scmt.healthy.mapper.TGroupOrderMapper;
 import com.scmt.core.utis.FileUtil;
+import com.scmt.core.vo.RoleDTO;
+import com.scmt.healthy.common.SocketConfig;
+import com.scmt.healthy.entity.TGroupOrder;
+import com.scmt.healthy.mapper.TGroupOrderMapper;
+import com.scmt.healthy.service.ITGroupOrderService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import javax.servlet.http.HttpServletResponse;
-
-import org.springframework.stereotype.Service;
-import org.springframework.beans.factory.annotation.Autowired;
-
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -208,6 +204,7 @@ public class TGroupOrderServiceImpl extends ServiceImpl<TGroupOrderMapper, TGrou
         return tGroupOrderMapper.getComNameByGroupId(groupId);
     }
 
+
     @Override
     public void download(TGroupOrder tGroupOrder, HttpServletResponse response) {
         List<Map<String, Object>> mapList = new ArrayList<>();
@@ -229,12 +226,23 @@ public class TGroupOrderServiceImpl extends ServiceImpl<TGroupOrderMapper, TGrou
         if (tGroupOrder != null) {
             queryWrapper = LikeAllFeild(tGroupOrder, null,null);
         }
+        queryWrapper.orderByDesc("t_group_order.create_time");
         return tGroupOrderMapper.queryAllTGroupOrderList(queryWrapper);
     }
 
     @Override
     public TGroupOrder getOneByWhere(String departmentId) {
         return tGroupOrderMapper.getOneByWhere(departmentId);
+    }
+
+    /**
+     * 获取当天最新的订单信息
+     * @return
+     */
+    @Override
+    public TGroupOrder getLastGroupOrderInfo() {
+        TGroupOrder groupOrder = tGroupOrderMapper.getLastGroupOrderByOrderDateAndCheckOrgId();
+        return groupOrder;
     }
 
     @Override
@@ -246,17 +254,44 @@ public class TGroupOrderServiceImpl extends ServiceImpl<TGroupOrderMapper, TGrou
             }
             //主治医师
             if( StringUtils.isNotBlank(socketConfig.getAttendingPhysician()) &&  StringUtils.isNotBlank(socketConfig.getPhysicalDirector())){
-                Boolean isAttendingPhysician = false;
+                Boolean isAttendingPhysician = false;//是否有 主治医师角色权限
+                Boolean isPhysicalDirector = false;//是否有 体检中心主任角色权限
+                Boolean isTechnicalDirector = false;//是否有 技术负责人角色权限
                 for(RoleDTO role :roles){
                     if(role!=null && StringUtils.isNotBlank(role.getId())&& role.getId().equals(socketConfig.getAttendingPhysician())){
-                        return tGroupOrderMapper.getTGroupOrderNumByCreateId(auditUserId,physicalType);
+                        isAttendingPhysician = true;
+//                        return tGroupOrderMapper.getTGroupOrderNumByCreateId(auditUserId,physicalType);
                     }
                     if(role!=null && StringUtils.isNotBlank(role.getId())&& role.getId().equals(socketConfig.getPhysicalDirector())){
-                        return tGroupOrderMapper.getTGroupOrderNum(auditUserId,physicalType);
+                        isPhysicalDirector = true;
+//                        return tGroupOrderMapper.getTGroupOrderNum(auditUserId,physicalType);
                     }
                     if(role!=null && StringUtils.isNotBlank(role.getId())&& role.getId().equals(socketConfig.getTechnicalDirector())){
-                        return tGroupOrderMapper.getTGroupOrderNumFinish(auditUserId,physicalType);
+                        isTechnicalDirector = true;
+//                        return tGroupOrderMapper.getTGroupOrderNumFinish(auditUserId,physicalType);
                     }
+                }
+                if(isAttendingPhysician && !isPhysicalDirector && !isTechnicalDirector){
+                    //只有 主治医师角色权限
+                    return tGroupOrderMapper.getTGroupOrderNumByCreateId(auditUserId,physicalType);
+                }else if(!isAttendingPhysician && isPhysicalDirector && !isTechnicalDirector){
+                    //只有 体检中心主任角色权限
+                    return tGroupOrderMapper.getTGroupOrderNum(auditUserId,physicalType);
+                }else if(!isAttendingPhysician && !isPhysicalDirector && isTechnicalDirector){
+                    //只有 技术负责人角色权限
+                    return tGroupOrderMapper.getTGroupOrderNumFinish(auditUserId,physicalType);
+                }else if(isAttendingPhysician && isPhysicalDirector && !isTechnicalDirector){
+                    //既有 主治医师角色权限 又有 体检中心主任角色权限
+                    return tGroupOrderMapper.getTGroupOrderNumAndByCreateId(auditUserId,physicalType);
+                }else if(isAttendingPhysician && isPhysicalDirector && isTechnicalDirector){
+                    //三个审核权限都有
+                    return tGroupOrderMapper.getTGroupOrderNumAll(auditUserId,physicalType);
+                }else if(isAttendingPhysician && !isPhysicalDirector && isTechnicalDirector){
+                    //既有 主治医师角色权限 又有 技术负责人角色权限
+                    return tGroupOrderMapper.getTGroupOrderNumFinishAndByCreateId(auditUserId,physicalType);
+                }else if(!isAttendingPhysician && isPhysicalDirector && isTechnicalDirector){
+                    //既有 体检中心主任角色权限 又有 技术负责人角色权限
+                    return tGroupOrderMapper.getTGroupOrderNumAndFinish(auditUserId,physicalType);
                 }
             }
             //其他人不要查询
@@ -301,6 +336,9 @@ public class TGroupOrderServiceImpl extends ServiceImpl<TGroupOrderMapper, TGrou
         if (StringUtils.isNotBlank(tGroupOrder.getGroupUnitName())) {
             queryWrapper.and(i -> i.like("t_group_order.group_unit_name", tGroupOrder.getGroupUnitName()));
         }
+        if (StringUtils.isNotBlank(tGroupOrder.getCompanyName())) {
+            queryWrapper.and(i -> i.like("t_group_unit.name", tGroupOrder.getCompanyName()));
+        }
 
         if (StringUtils.isNotBlank(tGroupOrder.getPhysicalType())) {
             queryWrapper.and(i -> i.like("t_group_order.physical_type", tGroupOrder.getPhysicalType()));
@@ -331,14 +369,28 @@ public class TGroupOrderServiceImpl extends ServiceImpl<TGroupOrderMapper, TGrou
                     if(tGroupOrder.getAuditState()==1) {
 
                         //主治医师
+                        List<String> auditStates = new ArrayList<>();//审核状态
                         for (RoleDTO role : roles) {
                             if (role != null && StringUtils.isNotBlank(role.getId()) && role.getId().equals(socketConfig.getAttendingPhysician())) {
-                                queryWrapper.and(i -> i.eq("t_group_order.audit_state", 1));
+//                                queryWrapper.and(i -> i.eq("t_group_order.audit_state", 1));
+                                auditStates.add("1");
                                 isAttendingPhysician = true;
-                                break;
+//                                break;
+                            }
+                            if (role != null && StringUtils.isNotBlank(role.getId()) && role.getId().equals(socketConfig.getPhysicalDirector())) {
+//                                queryWrapper.and(i -> i.in("t_group_order.audit_state", 2));
+                                auditStates.add("2");
+                                isPhysicalDirector = true;
+//                                break;
+                            }
+                            if (role != null && StringUtils.isNotBlank(role.getId()) && role.getId().equals(socketConfig.getTechnicalDirector())) {
+//                                queryWrapper.and(i -> i.in("t_group_order.audit_state", 3));
+                                auditStates.add("3");
+                                isTechnicalDirector = true;
+//                                break;
                             }
                         }
-                        //中心主任
+                        /*//中心主任
                         if (!isAttendingPhysician) {
                             for (RoleDTO role : roles) {
                                 if (role != null && StringUtils.isNotBlank(role.getId()) && role.getId().equals(socketConfig.getPhysicalDirector())) {
@@ -358,23 +410,36 @@ public class TGroupOrderServiceImpl extends ServiceImpl<TGroupOrderMapper, TGrou
                                 }
 
                             }
-                        }
+                        }*/
                         //都不是
                         if (!isAttendingPhysician && !isPhysicalDirector && !isTechnicalDirector) {
                             queryWrapper.and(i -> i.eq("t_group_order.audit_state", 999));
+                        }else{
+                            queryWrapper.and(i -> i.in("t_group_order.audit_state", auditStates));
                         }
                     }
                     //已检的
                     else if(tGroupOrder.getAuditState()==99){
                         //主治医师
+                        List<String> auditStates = new ArrayList<>();//审核状态
                         for (RoleDTO role : roles) {
                             if (role != null && StringUtils.isNotBlank(role.getId()) && role.getId().equals(socketConfig.getAttendingPhysician())) {
-                                queryWrapper.and(i -> i.in("t_group_order.audit_state", 2,3,4));
+//                                queryWrapper.and(i -> i.in("t_group_order.audit_state", 2,3,4))
                                 isAttendingPhysician = true;
-                                break;
+//                                break;
+                            }
+                            if (role != null && StringUtils.isNotBlank(role.getId()) && role.getId().equals(socketConfig.getPhysicalDirector())) {
+//                                queryWrapper.and(i -> i.in("t_group_order.audit_state", 3,4));
+                                isPhysicalDirector = true;
+//                                break;
+                            }
+                            if (role != null && StringUtils.isNotBlank(role.getId()) && role.getId().equals(socketConfig.getTechnicalDirector())) {
+//                                queryWrapper.and(i -> i.in("t_group_order.audit_state", 4));
+                                isTechnicalDirector = true;
+//                                break;
                             }
                         }
-                        //中心主任
+                        /*//中心主任
                         if (!isAttendingPhysician) {
                             for (RoleDTO role : roles) {
                                 if (role != null && StringUtils.isNotBlank(role.getId()) && role.getId().equals(socketConfig.getPhysicalDirector())) {
@@ -394,10 +459,39 @@ public class TGroupOrderServiceImpl extends ServiceImpl<TGroupOrderMapper, TGrou
                                 }
 
                             }
-                        }
+                        }*/
                         //都不是
                         if (!isAttendingPhysician && !isPhysicalDirector && !isTechnicalDirector) {
                             queryWrapper.and(i -> i.eq("t_group_order.audit_state", 999));
+                        }else{
+                            if(isAttendingPhysician && !isPhysicalDirector && !isTechnicalDirector){
+                                //只有 主治医师角色权限
+                                auditStates.add("2");
+                                auditStates.add("3");
+                                auditStates.add("4");
+                            }else if(!isAttendingPhysician && isPhysicalDirector && !isTechnicalDirector){
+                                //只有 体检中心主任角色权限
+                                auditStates.add("3");
+                                auditStates.add("4");
+                            }else if(!isAttendingPhysician && !isPhysicalDirector && isTechnicalDirector){
+                                //只有 技术负责人角色权限
+                                auditStates.add("4");
+                            }else if(isAttendingPhysician && isPhysicalDirector && !isTechnicalDirector){
+                                //既有 主治医师角色权限 又有 体检中心主任角色权限
+                                auditStates.add("3");
+                                auditStates.add("4");
+                            }else if(isAttendingPhysician && isPhysicalDirector && isTechnicalDirector){
+                                //三个审核权限都有
+                                auditStates.add("4");
+                            }else if(isAttendingPhysician && !isPhysicalDirector && isTechnicalDirector){
+                                //既有 主治医师角色权限 又有 技术负责人角色权限
+                                auditStates.add("2");
+                                auditStates.add("4");
+                            }else if(!isAttendingPhysician && isPhysicalDirector && isTechnicalDirector){
+                                //既有 体检中心主任角色权限 又有 技术负责人角色权限
+                                auditStates.add("4");
+                            }
+                            queryWrapper.and(i -> i.in("t_group_order.audit_state", auditStates));
                         }
 
                     }

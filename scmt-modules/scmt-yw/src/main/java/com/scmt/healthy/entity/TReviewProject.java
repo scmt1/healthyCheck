@@ -107,6 +107,7 @@ public class TReviewProject implements Serializable {
     private List<RelationProjectCritical> criticals;
 
     @ApiModelProperty(value = "是否删除(0-未删除，1-已删除)")
+    @TableLogic
     private Integer delFlag;
 
     @ApiModelProperty(value = "创建人id")
@@ -189,4 +190,11 @@ public class TReviewProject implements Serializable {
     @ApiModelProperty(value = "单位名称")
     @TableField(exist = false)
     private String dept;
+
+    @ApiModelProperty(value = "身份证号")
+    @TableField(exist = false)
+    private String idCard;
+
+    @ApiModelProperty(value = "危害因素")
+    private String hazardFactorCode;
 }

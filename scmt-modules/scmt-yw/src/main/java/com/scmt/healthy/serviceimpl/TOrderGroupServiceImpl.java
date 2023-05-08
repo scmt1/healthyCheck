@@ -75,6 +75,7 @@ public class TOrderGroupServiceImpl extends ServiceImpl<TOrderGroupMapper, TOrde
         QueryWrapper<TOrderGroup> queryWrapper = new QueryWrapper<>();
         if (tOrderGroup != null) {
             queryWrapper = LikeAllFeild(tOrderGroup, null);
+            queryWrapper.orderByAsc("order_num");
         }
         List<TOrderGroup> list = tOrderGroupMapper.selectList(queryWrapper);
         return list;
@@ -95,6 +96,11 @@ public class TOrderGroupServiceImpl extends ServiceImpl<TOrderGroupMapper, TOrde
     @Override
     public Map<String, Object> queryCheckProjectAndHazardFactors(String groupOrderId) {
         return tOrderGroupMapper.queryCheckProjectAndHazardFactors(groupOrderId);
+    }
+
+    @Override
+    public Map<String, Object> queryCheckProjectAndHazardFactorsHealthy(String groupOrderId) {
+        return tOrderGroupMapper.queryCheckProjectAndHazardFactorsHealthy(groupOrderId);
     }
 
     @Override

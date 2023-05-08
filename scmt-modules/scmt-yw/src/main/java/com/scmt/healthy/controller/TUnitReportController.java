@@ -1,15 +1,10 @@
 package com.scmt.healthy.controller;
 
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.scmt.healthy.entity.TGroupPerson;
-import com.scmt.healthy.entity.TReviewProject;
-import com.scmt.healthy.service.ITReviewProjectService;
-import com.scmt.healthy.service.ITUnitReportService;
+import com.scmt.healthy.entity.*;
+import com.scmt.healthy.service.*;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -26,7 +21,6 @@ import com.scmt.core.common.vo.Result;
 import com.scmt.core.common.vo.SearchVo;
 import com.scmt.core.common.utils.SecurityUtil;
 import com.scmt.core.common.annotation.SystemLog;
-import com.scmt.healthy.entity.TUnitReport;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.scmt.core.common.enums.LogType;
@@ -46,6 +40,15 @@ public class TUnitReportController {
     private SecurityUtil securityUtil;
     @Autowired
     private ITReviewProjectService itReviewProjectService;
+    @Autowired
+    private TInterrogationService interrogationService;
+
+    @Autowired
+    private ITReviewPersonService itReviewPersonService;
+    @Autowired
+    private ITGroupUnitService tGroupUnitService;
+    @Autowired
+    private ITGroupOrderService tGroupOrderService;
 
     /**
      * 功能描述：新增tUnitReport数据
@@ -241,13 +244,80 @@ public class TUnitReportController {
             List<TUnitReport> resultFinish = tUnitReportService.checkThePeopleStatisticsTableFinish(orderId);
             //查询复查人员信息
             List<TGroupPerson> reviewData = itReviewProjectService.queryReviewPersonData(orderId);
+            //查询复查结果信息
+            List<TGroupPerson> tReviewPersonList = itReviewProjectService.queryReviewResultData(orderId);
             //其他人员检查信息
             List<TGroupPerson> personList = itReviewProjectService.queryAllPersonData(orderId);
+            //单位信息
+            TGroupUnit unitInfo = new TGroupUnit();
+            if(StringUtils.isNotBlank(orderId)){
+                TGroupOrder orderInfo = tGroupOrderService.getById(orderId);
+                if(orderInfo!=null && StringUtils.isNotBlank(orderInfo.getGroupUnitId())){
+                    unitInfo = tGroupUnitService.getById(orderInfo.getGroupUnitId());
+                }
+            }
+            //复查后异常人员统计
+            /*问诊信息*/
+            /*for (TGroupPerson person : personList) {
+                if(person!=null && person.getId()!=null && person.getId().trim().length()>0){
+                    //问诊查询
+                    QueryWrapper<TInterrogation> tInterrogationQueryWrapper = new QueryWrapper<>();
+                    tInterrogationQueryWrapper.eq("del_flag",0);
+                    tInterrogationQueryWrapper.eq("person_id",person.getId());
+                    List<TInterrogation> tInterrogationList = interrogationService.list(tInterrogationQueryWrapper);
+                    if(tInterrogationList!=null & tInterrogationList.size()>0){
+                        TInterrogation tInterrogation = tInterrogationList.get(0);
+                        if(tInterrogation!=null){
+                            person.setWorkYear(tInterrogation.getWorkYear());
+                            person.setWorkMonth(tInterrogation.getWorkMonth());
+                            person.setExposureWorkYear(tInterrogation.getExposureWorkYear());
+                            person.setExposureWorkMonth(tInterrogation.getExposureWorkMonth());
+                            person.setExposureStartDate(tInterrogation.getExposureStartDate());
+                            person.setNation(tInterrogation.getNation());
+                            person.setCheckNum(tInterrogation.getCheckNum());
+                            person.setDiseaseName(tInterrogation.getDiseaseName());
+                            person.setIsCured(tInterrogation.getIsCured());
+                            person.setMenarche(tInterrogation.getMenarche());
+                            person.setPeriod(tInterrogation.getPeriod());
+                            person.setCycle(tInterrogation.getCycle());
+                            person.setLastMenstruation(tInterrogation.getLastMenstruation());
+                            person.setExistingChildren(tInterrogation.getExistingChildren());
+                            person.setAbortion(tInterrogation.getAbortion());
+                            person.setPremature(tInterrogation.getPremature());
+                            person.setDeath(tInterrogation.getDeath());
+                            person.setAbnormalFetus(tInterrogation.getAbnormalFetus());
+                            person.setSmokeState(tInterrogation.getSmokeState());
+                            person.setPackageEveryDay(tInterrogation.getPackageEveryDay());
+                            person.setSmokeYear(tInterrogation.getSmokeYear());
+                            person.setDrinkState(tInterrogation.getDrinkState());
+                            person.setMlEveryDay(tInterrogation.getMlEveryDay());
+                            person.setDrinkYear(tInterrogation.getDrinkYear());
+                            person.setOtherInfo(tInterrogation.getOtherInfo());
+                            person.setSymptom(tInterrogation.getSymptom());
+                            person.setEducation(tInterrogation.getEducation());
+                            person.setFamilyAddress(tInterrogation.getFamilyAddress());
+                            person.setMenstrualHistory(tInterrogation.getMenstrualHistory());
+                            person.setMenstrualInfo(tInterrogation.getMenstrualInfo());
+                            person.setAllergies(tInterrogation.getAllergies());
+                            person.setAllergiesInfo(tInterrogation.getAllergiesInfo());
+                            person.setBirthplaceCode(tInterrogation.getBirthplaceCode());
+                            person.setBirthplaceName(tInterrogation.getBirthplaceName());
+                            person.setFamilyHistory(tInterrogation.getFamilyHistory());
+                            person.setPastMedicalHistoryOtherInfo(tInterrogation.getPastMedicalHistoryOtherInfo());
+                            person.setWzCheckDoctor(tInterrogation.getWzCheckDoctor());
+                            person.setWzCheckTime(tInterrogation.getWzCheckTime());
+                            person.setWzCheckAutograph(tInterrogation.getWzCheckAutograph());
+                        }
+                    }
+                }
+            }*/
             HashMap<String, Object> hashMap = new HashMap<>();
             hashMap.put("result1", result);
             hashMap.put("resultFinish", resultFinish);
             hashMap.put("result2", reviewData);
             hashMap.put("result3", personList);
+            hashMap.put("result4", tReviewPersonList);
+            hashMap.put("result5", unitInfo);
             return ResultUtil.data(hashMap);
         } catch (Exception e) {
             e.printStackTrace();

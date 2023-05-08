@@ -4,6 +4,11 @@ import cn.hutool.core.io.file.FileMode;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.aspose.words.Document;
+//import com.itextpdf.text.BaseColor;
+import com.deepoove.poi.data.style.Style;
+import com.jacob.com.ComThread;
+import com.jacob.com.Variant;
+import com.lowagie.text.*;
 import com.aspose.words.ImportFormatMode;
 import com.aspose.words.License;
 import com.aspose.words.SaveFormat;
@@ -13,15 +18,29 @@ import com.deepoove.poi.XWPFTemplate;
 import com.deepoove.poi.config.Configure;
 import com.deepoove.poi.data.*;
 import com.deepoove.poi.plugin.table.LoopRowTableRenderPolicy;
+import com.jacob.activeX.ActiveXComponent;
+import com.jacob.com.Dispatch;
+import com.lowagie.text.Font;
+import com.lowagie.text.Image;
+import com.lowagie.text.PageSize;
+import com.lowagie.text.pdf.BaseFont;
+import com.lowagie.text.pdf.PdfWriter;
 import com.scmt.core.common.utils.IpInfoUtil;
 import com.scmt.core.utis.FileUtil;
+import com.scmt.healthy.common.SocketConfig;
 //import com.sun.image.codec.jpeg.JPEGCodec;
 //import com.sun.image.codec.jpeg.JPEGImageEncoder;
+import fr.opensagres.poi.xwpf.converter.pdf.PdfConverter;
+import fr.opensagres.poi.xwpf.converter.pdf.PdfOptions;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.xwpf.usermodel.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.annotation.PostConstruct;
 import javax.imageio.ImageIO;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -35,15 +54,33 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.List;
 
+
+
 /**
  * @author dengjie
  */
+@Component
+//@Slf4j
 public class DocUtil {
+    private static DocUtil utils;
+    /**
+     * socket配置
+     */
+    @Autowired
+    public SocketConfig socketConfig;
+
     public static final String 封面模板 = "封面模板";
     private static Logger log = LoggerFactory.getLogger(DocUtil.class);
 
     public static String basePath = UploadFileUtils.basePath + "wordTemplate/";
 
+
+    @PostConstruct
+    public void init() {
+
+        utils = this;
+
+    }
 
     /**
      * 将文件存储在 nginx代理路劲下
@@ -364,10 +401,12 @@ public class DocUtil {
         LoopRowTableRenderPolicy dataRight = new LoopRowTableRenderPolicy();
         Configure config = Configure.builder().bind("goods", goods).bind("dataLeft", dataLeft).bind("dataRight", dataRight).build();
         config.customPolicy("dataRight", dataRight);
-        if(map.containsKey("tableMon") && map.get("tableMon") != null){
+        /*if(map.containsKey("tableMon") && map.get("tableMon") != null){
             LoopRowTableRenderPolicy tableMon = new LoopRowTableRenderPolicy();
             config.customPolicy("tableMon", tableMon);
-        }
+        }*/
+        LoopRowTableRenderPolicy tableMon = new LoopRowTableRenderPolicy();
+        config.customPolicy("tableMon", tableMon);
         if(map.containsKey("vitalCapacity1") && map.get("vitalCapacity1") != null){
             LoopRowTableRenderPolicy vitalCapacity1 = new LoopRowTableRenderPolicy();
             config.customPolicy("vitalCapacity1", vitalCapacity1);
@@ -399,6 +438,10 @@ public class DocUtil {
         if(map.containsKey("personData") && map.get("personData") != null){
             LoopRowTableRenderPolicy personData = new LoopRowTableRenderPolicy();
             config.customPolicy("personData", personData);
+        }
+        if(map.containsKey("tTestRecords") && map.get("tTestRecords") != null){
+            LoopRowTableRenderPolicy tTestRecords = new LoopRowTableRenderPolicy();
+            config.customPolicy("tTestRecords", tTestRecords);
         }
         if(map.containsKey("recheckData") && map.get("recheckData") != null){
             LoopRowTableRenderPolicy recheckData = new LoopRowTableRenderPolicy();
@@ -461,7 +504,7 @@ public class DocUtil {
 
         outputStream.close();
         // 有下载功能则不删除
-        if(outPathNew.indexOf("单位报告") == -1 && outPathNew.indexOf("复查报告") == -1&& outPathNew.indexOf("合同模板") == -1){
+        if(outPathNew.indexOf("单位报告") == -1 && outPathNew.indexOf("健康体检总结") == -1 && outPathNew.indexOf("放射总结报告") == -1 && outPathNew.indexOf("复查报告") == -1 && outPathNew.indexOf("合同模板") == -1 && outPathNew.indexOf("基本信息表") == -1 && outPathNew.indexOf("人员名单信息表") == -1 && outPathNew.indexOf("危害因素评价报告") == -1){
             //解析过程中间文件删除
             fileOutputTemplate.delete();
         }
@@ -602,10 +645,12 @@ public class DocUtil {
         LoopRowTableRenderPolicy dataRight = new LoopRowTableRenderPolicy();
         Configure config = Configure.builder().bind("goods", goods).bind("dataLeft", dataLeft).bind("dataRight", dataRight).build();
         config.customPolicy("dataRight", dataRight);
-        if(map.containsKey("tableMon") && map.get("tableMon") != null){
+        /*if(map.containsKey("tableMon") && map.get("tableMon") != null){
             LoopRowTableRenderPolicy tableMon = new LoopRowTableRenderPolicy();
             config.customPolicy("tableMon", tableMon);
-        }
+        }*/
+        LoopRowTableRenderPolicy tableMon = new LoopRowTableRenderPolicy();
+        config.customPolicy("tableMon", tableMon);
         if(map.containsKey("vitalCapacity1") && map.get("vitalCapacity1") != null){
             LoopRowTableRenderPolicy vitalCapacity1 = new LoopRowTableRenderPolicy();
             config.customPolicy("vitalCapacity1", vitalCapacity1);
@@ -688,7 +733,7 @@ public class DocUtil {
             for (String key : mapCopy.keySet()) {
                 if (StringUtils.isNotBlank(key) && map.get(key) != null) {
                     //条形码
-                    if (map.containsKey("barCodeImg") && map.get("barCodeImg") != null) {
+                    if ("barCodeImg".equals(key) && map.containsKey("barCodeImg") && map.get("barCodeImg") != null) {
                         String barCodeImg = map.get("barCodeImg").toString();
                         if (StringUtils.isNotBlank(barCodeImg)) {
                             //转换为
@@ -701,18 +746,200 @@ public class DocUtil {
 
                         }
                     }
-                    //头像图片
-                    if (map.containsKey("headImg") && map.get("headImg") != null) {
-                        String headImg = map.get("headImg").toString();
-                        if (StringUtils.isNotBlank(headImg)) {
+                    if ("idCardImg".equals(key) && map.containsKey("idCardImg") && map.get("idCardImg") != null) {
+                        String idCardImg = map.get("idCardImg").toString();
+                        if (StringUtils.isNotBlank(idCardImg)) {
                             //转换为
-                            BufferedImage bufferedImage = BASE64DecodedMultipartFile.base64ToBufferedImage(headImg);
+                            BufferedImage bufferedImage = BASE64DecodedMultipartFile.base64ToBufferedImage(idCardImg);
                             if (bufferedImage != null) {
                                 // java图片
-                                map.put("headImg", Pictures.ofBufferedImage(bufferedImage, PictureType.PNG)
-                                        .size(120, 140).create());
+                                map.put("idCardImg", Pictures.ofBufferedImage(bufferedImage, PictureType.PNG)
+                                        .size(1100, 125).create());
                             }
 
+                        }
+                    }
+                    //头像图片
+                    if ("headImg".equals(key) && map.containsKey("headImg") && map.get("headImg") != null) {
+                        try{
+                            String headImg = map.get("headImg").toString();
+                            if (StringUtils.isNotBlank(headImg)) {
+                                if(headImg.indexOf("/dcm") <= -1){
+                                    //转换为
+                                    BufferedImage bufferedImage = BASE64DecodedMultipartFile.base64ToBufferedImage(headImg);
+                                    if (bufferedImage != null) {
+                                        // java图片
+                                        map.put("headImg", Pictures.ofBufferedImage(bufferedImage, PictureType.PNG)
+                                                .size(120, 140).create());
+                                    }
+                                }else{
+                                    String classPath = getClassPath();
+                                    String imgPath = classPath.split(":")[0] + ":" + UploadFileUtils.deletePath + headImg.replace("/tempFileUrl/","/");
+
+                                    // 图片流
+                                    map.put("headImg", Pictures.ofStream(new FileInputStream(imgPath), PictureType.JPEG)
+                                            .size(120, 140).create());
+                                }
+                            }
+                        } catch (Exception e) { //捕获任何异常
+                            continue; //将跳过此迭代并跳转到下一个
+                        }
+                    }
+                    //健康证 从业类型
+                    if (key.contains("comboType") && map.containsKey("comboType") && map.get("comboType")!=null){
+                        try {
+                            String headImgJKZ = map.get("comboType").toString();
+                            TextRenderData textRenderData = new TextRenderData("\uF0FE",new Style("Wingdings",28));
+                            TextRenderData textRenderDataNew = new TextRenderData("□");
+                            map.put("test1",textRenderDataNew);
+                            map.put("test2",textRenderDataNew);
+                            map.put("test",textRenderDataNew);
+                            map.put("test4",textRenderDataNew);
+                            if (headImgJKZ.equals("1")){
+                                map.put("test1",textRenderData);
+                            }else if (headImgJKZ.equals("2")){
+                                map.put("test2",textRenderData);
+                            }else if (headImgJKZ.equals("3")){
+                                map.put("test",textRenderData);
+                            }else if (headImgJKZ.equals("4")){
+                                map.put("test4",textRenderData);
+                            }
+                        }catch (Exception e){
+                            continue; //将跳过此迭代并跳转到下一个
+                        }
+                    }
+                    if (key.contains("resultsWG") && map.containsKey("resultsWG") && map.get("resultsWG")!=null){
+                        Style style = new Style();
+                        String string = map.get("resultsWG").toString();
+                        if (map.get("positiveWG")!=null && map.get("positiveWG").equals("1")){
+                            style.setColor("FF0000");
+                        }
+                        TextRenderData textRenderData = new TextRenderData();
+                        textRenderData.setText(string);
+                        textRenderData.setStyle(style);
+                        map.put("resultsWG",textRenderData);
+                    }
+
+                    if (key.contains("resultsJG") && map.containsKey("resultsJG") && map.get("resultsJG")!=null){
+                        Style style = new Style();
+                        String string = map.get("resultsJG").toString();
+                        if (map.get("positiveJG")!=null && map.get("positiveJG").equals("1")){
+                            style.setColor("FF0000");
+                        }
+                        TextRenderData textRenderData = new TextRenderData();
+                        textRenderData.setText(string);
+                        textRenderData.setStyle(style);
+                        map.put("resultsJG",textRenderData);
+                    }
+
+                    if (key.contains("resultsZAM") && map.containsKey("resultsZAM") && map.get("resultsZAM")!=null){
+                        Style style = new Style();
+                        String string = map.get("resultsZAM").toString();
+                        if (map.get("positiveZAM")!=null && map.get("positiveZAM").equals("1")){
+                            style.setColor("FF0000");
+                        }
+                        TextRenderData textRenderData = new TextRenderData();
+                        textRenderData.setText(string);
+                        textRenderData.setStyle(style);
+                        map.put("resultsZAM",textRenderData);
+                    }
+
+                    if (key.contains("resultsSM") && map.containsKey("resultsSM") && map.get("resultsSM")!=null){
+                        Style style = new Style();
+                        String string = map.get("resultsSM").toString();
+                        if (map.get("positiveSM")!=null && map.get("positiveSM").equals("1")){
+                            style.setColor("FF0000");
+                        }
+                        TextRenderData textRenderData = new TextRenderData();
+                        textRenderData.setText(string);
+                        textRenderData.setStyle(style);
+                        map.put("resultsSM",textRenderData);
+                    }
+
+                    if (key.contains("resultsZH") && map.containsKey("resultsZH") && map.get("resultsZH")!=null){
+                        Style style = new Style();
+                        String string = map.get("resultsZH").toString();
+                        if (map.get("positiveZH")!=null && map.get("positiveZH").equals("1")){
+                            style.setColor("FF0000");
+                        }
+                        TextRenderData textRenderData = new TextRenderData();
+                        textRenderData.setText(string);
+                        textRenderData.setStyle(style);
+                        map.put("resultsZH",textRenderData);
+                    }
+
+                    if (key.contains("innerX") && map.containsKey("innerX") && map.get("innerX")!=null){
+                        Style style = new Style();
+                        String string = map.get("innerX").toString();
+                        if (map.get("innerXPositive")!=null && map.get("innerXPositive").equals("1")){
+                            style.setColor("FF0000");
+                        }
+                        TextRenderData textRenderData = new TextRenderData();
+                        textRenderData.setText(string);
+                        textRenderData.setStyle(style);
+                        map.put("innerX",textRenderData);
+                    }
+
+                    if (key.contains("innerG") && map.containsKey("innerG") && map.get("innerG")!=null){
+                        Style style = new Style();
+                        String string = map.get("innerG").toString();
+                        if (map.get("innerGPositive")!=null && map.get("innerGPositive").equals("1")){
+                            style.setColor("FF0000");
+                        }
+                        TextRenderData textRenderData = new TextRenderData();
+                        textRenderData.setText(string);
+                        textRenderData.setStyle(style);
+                        map.put("innerG",textRenderData);
+                    }
+
+                    if (key.contains("innerP") && map.containsKey("innerP") && map.get("innerP")!=null){
+                        Style style = new Style();
+                        String string = map.get("innerP").toString();
+                        if (map.get("innerPositive")!=null && map.get("innerPositive").equals("1")){
+                            style.setColor("FF0000");
+                        }
+                        TextRenderData textRenderData = new TextRenderData();
+                        textRenderData.setText(string);
+                        textRenderData.setStyle(style);
+                        map.put("innerP",textRenderData);
+                    }
+
+                    if (key.contains("innerF") && map.containsKey("innerF") && map.get("innerF")!=null){
+                        Style style = new Style();
+                        String string = map.get("innerF").toString();
+                        if (map.get("innerFPositive")!=null && map.get("innerFPositive").equals("1")){
+                            style.setColor("FF0000");
+                        }
+                        TextRenderData textRenderData = new TextRenderData();
+                        textRenderData.setText(string);
+                        textRenderData.setStyle(style);
+                        map.put("innerF",textRenderData);
+                    }
+
+                    //头像图片 健康证
+                    if ("headImgJKZ".equals(key) && map.containsKey("headImgJKZ") && map.get("headImgJKZ") != null) {
+                        try{
+                            String headImgJKZ = map.get("headImgJKZ").toString();
+                            if (StringUtils.isNotBlank(headImgJKZ)) {
+                                if(headImgJKZ.indexOf("/dcm") <= -1){
+                                    //转换为
+                                    BufferedImage bufferedImage = BASE64DecodedMultipartFile.base64ToBufferedImage(headImgJKZ);
+                                    if (bufferedImage != null) {
+                                        // java图片
+                                        map.put("headImgJKZ", Pictures.ofBufferedImage(bufferedImage, PictureType.PNG)
+                                                .size(275, 310).create());
+                                    }
+                                }else{
+                                    String classPath = getClassPath();
+                                    String imgPath = classPath.split(":")[0] + ":" + UploadFileUtils.deletePath + headImgJKZ.replace("/tempFileUrl/","/");
+
+                                    // 图片流
+                                    map.put("headImgJKZ", Pictures.ofStream(new FileInputStream(imgPath), PictureType.JPEG)
+                                            .size(275, 310).create());
+                                }
+                            }
+                        } catch (Exception e) { //捕获任何异常
+                            continue; //将跳过此迭代并跳转到下一个
                         }
                     }
                     //电测听统计图
@@ -764,7 +991,7 @@ public class DocUtil {
                     }
                     //幽门螺旋杆菌
                     if ("histogramImage".equals(key)) {
-						JSONObject histogramImage = (JSONObject) map.get("histogramImage");
+                        JSONObject histogramImage = (JSONObject) map.get("histogramImage");
                         JSONArray xArray =  histogramImage.getJSONArray("x");
                         JSONArray yArray =  histogramImage.getJSONArray("y");
                         ChartMultiSeriesRenderData chart = Charts
@@ -775,16 +1002,85 @@ public class DocUtil {
                     }
                     //总检医生签名图片
                     if ("autograph".equals(key)) {
-                        String autograph = map.get("autograph").toString();
-                        if (StringUtils.isNotBlank(autograph)) {
-                            //转换为
-                            BufferedImage bufferedImage = BASE64DecodedMultipartFile.base64ToBufferedImage(autograph);
-                            if (bufferedImage != null) {
-                                // java图片
-                                map.put("autograph", Pictures.ofBufferedImage(bufferedImage, PictureType.PNG)
-                                        .size(70, 30).create());
-                            }
+                        try{
+                            String autograph = map.get("autograph").toString();
+                            if (StringUtils.isNotBlank(autograph)) {
+                                if(autograph.indexOf("/dcm") <= -1){
+                                    //转换为
+                                    BufferedImage bufferedImage = BASE64DecodedMultipartFile.base64ToBufferedImage(autograph);
+                                    if (bufferedImage != null) {
+                                        // java图片
+                                        map.put("autograph", Pictures.ofBufferedImage(bufferedImage, PictureType.PNG)
+                                                .size(90, 45).create());
+                                    }
+                                }else{
+                                    String classPath = getClassPath();
+                                    String imgPath = classPath.split(":")[0] + ":" + UploadFileUtils.deletePath + autograph.replace("/tempFileUrl/","/");
 
+                                    // 图片流
+                                    map.put("autograph", Pictures.ofStream(new FileInputStream(imgPath), PictureType.JPEG)
+                                            .size(90, 45).create());
+                                }
+                            }
+                        } catch (Exception e) { //捕获任何异常
+                            continue; //将跳过此迭代并跳转到下一个
+                        }
+                    }
+                    //肺功能测试曲线
+                    if("imgUrlList".equals(key)){
+                        ArrayList table = (ArrayList) map.get(key);
+                        if (table != null && table.size() > 0) {
+                            for (int i = 0; i < table.size(); i++) {
+                                Map<String, Object> o = (Map<String, Object>) table.get(i);
+                                if (o != null && o.containsKey("img") && o.get("img") != null) {
+                                    String imgUrl = (String) o.get("img");
+                                    //图片
+                                    if (StringUtils.isNotBlank(imgUrl)) {
+                                        //拼接路径
+                                        String classPath = getClassPath();
+                                        String imgPath = classPath.split(":")[0] + ":" + UploadFileUtils.deletePath + imgUrl;
+                                        if (imgPath != null) {
+                                            // 存入 图片流
+                                            o.put("img", Pictures.ofStream(new FileInputStream(imgPath), PictureType.JPEG)
+                                                    .size(260, 110).create());
+                                        }
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                    if ("showImgUrl".equals(key)) {
+                        ArrayList table = (ArrayList) map.get(key);
+                        if (table != null && table.size() > 0) {
+                            for (int i = 0; i < table.size(); i++) {
+                                Map<String, Object> o = (Map<String, Object>) table.get(i);
+                                for (String oKey : o.keySet()) {
+                                    if(oKey.indexOf("imgUrlList") > -1){
+                                        ArrayList imgUrlListTable = (ArrayList) o.get(oKey);
+                                        if (imgUrlListTable != null && imgUrlListTable.size() > 0) {
+                                            for (int m = 0; m < imgUrlListTable.size(); m++) {
+                                                Map<String, Object> om = (Map<String, Object>) imgUrlListTable.get(m);
+                                                if (om != null && om.containsKey("img") && om.get("img") != null) {
+                                                    String imgUrl = (String) om.get("img");
+                                                    //图片
+                                                    if (StringUtils.isNotBlank(imgUrl)) {
+                                                        //拼接路径
+                                                        String classPath = getClassPath();
+                                                        String imgPath = classPath.split(":")[0] + ":" + UploadFileUtils.deletePath + imgUrl;
+                                                        if (imgPath != null) {
+                                                            // 存入 图片流
+                                                            om.put("img", Pictures.ofStream(new FileInputStream(imgPath), PictureType.JPEG)
+                                                                    .size(260, 110).create());
+                                                        }
+                                                    }
+                                                }
+
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                     //心电图图片
@@ -829,7 +1125,7 @@ public class DocUtil {
 
                             // 图片流
                             map.put("zoncareImg", Pictures.ofStream(new FileInputStream(imgPath), PictureType.JPEG)
-                                    .size(297 * 4 - 10, 160 * 4).create());
+                                    .size(297 * 4 - 10, 140 * 4).create());
                             /*map.put("zoncareImg", Pictures.ofStream(new FileInputStream(imgPath), PictureType.PNG)
                                     .size(targetWidth, targetHeight).create());*/
                             /*map.put("zoncareImg", Pictures.ofBufferedImage(dimg, PictureType.PNG)
@@ -839,14 +1135,18 @@ public class DocUtil {
                     }
                     //肝脾B超報告图片
                     if ("gpImg".equals(key)) {
-                        String gpImg = map.get("gpImg").toString();
-                        if (StringUtils.isNotBlank(gpImg)) {
-                            String classPath = getClassPath();
-                            String imgPath = classPath.split(":")[0] + ":" + UploadFileUtils.deletePath + gpImg;
-                            // 图片流
-                            map.put("gpImg", Pictures.ofStream(new FileInputStream(imgPath), PictureType.JPEG)
-                                    .size(210 * 4, 297 * 4).create());
+                        try{
+                            String gpImg = map.get("gpImg").toString();
+                            if (StringUtils.isNotBlank(gpImg)) {
+                                String classPath = getClassPath();
+                                String imgPath = classPath.split(":")[0] + ":" + UploadFileUtils.deletePath + gpImg;
+                                // 图片流
+                                map.put("gpImg", Pictures.ofStream(new FileInputStream(imgPath), PictureType.JPEG)
+                                        .size(210 * 4, 297 * 4).create());
 
+                            }
+                        } catch (Exception e) { //捕获任何异常
+                            continue; //将跳过此迭代并跳转到下一个
                         }
                     }
                     if (key.indexOf("tableMonitoring") > -1) {
@@ -871,14 +1171,38 @@ public class DocUtil {
                                     if(oKey.indexOf("autograph") > -1){
                                         String autograph = o.get(oKey).toString();
                                         if (StringUtils.isNotBlank(autograph)) {
-                                            //转换为
-                                            BufferedImage bufferedImage = BASE64DecodedMultipartFile.base64ToBufferedImage(autograph);
-                                            if (bufferedImage != null) {
-                                                // java图片
-                                                o.put(oKey, Pictures.ofBufferedImage(bufferedImage, PictureType.PNG)
-                                                        .size(70, 30).create());
-                                            }
+                                            if(autograph.indexOf("/dcm") <= -1){
+                                                //转换为
+                                                BufferedImage bufferedImage = BASE64DecodedMultipartFile.base64ToBufferedImage(autograph);
+                                                if (bufferedImage != null) {
+                                                    // java图片
+                                                    o.put(oKey, Pictures.ofBufferedImage(bufferedImage, PictureType.PNG)
+                                                            .size(90, 45).create());
+                                                }
+                                            }else{
+                                                String classPath = getClassPath();
+                                                String imgPath = classPath.split(":")[0] + ":" + UploadFileUtils.deletePath + autograph.replace("/tempFileUrl/","/");
 
+                                                // 图片流
+                                                o.put(oKey, Pictures.ofStream(new FileInputStream(imgPath), PictureType.JPEG)
+                                                        .size(90, 45).create());
+                                            }
+                                        }
+                                    }
+                                    if(oKey.indexOf("tableMon") > -1){
+                                        ArrayList tableMon = (ArrayList) o.get(oKey);
+                                        if(tableMon != null && tableMon.size() > 0){
+                                            for (int j = 0; j < tableMon.size(); j++) {
+                                                Map<String, Object> otableMon = (Map<String, Object>) tableMon.get(j);
+                                                String resultTips = otableMon.get("resultTips").toString();
+                                                if (resultTips.indexOf("高于")>-1) {
+                                                    otableMon.put("resultTips", new TextRenderData("FF0000", "↑"));
+                                                } else if (resultTips.indexOf("低于")>-1) {
+                                                    otableMon.put("resultTips", new TextRenderData("e9d22d", "↓"));
+                                                } else {
+                                                    otableMon.put("resultTips", new TextRenderData("000000", ""));
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -893,16 +1217,28 @@ public class DocUtil {
                                 Map<String, Object> o = (Map<String, Object>) table.get(i);
                                 for (String oKey : o.keySet()) {
                                     if(oKey.indexOf("Autograph") > -1){
-                                        String autograph = o.get(oKey).toString();
-                                        if (StringUtils.isNotBlank(autograph)) {
-                                            //转换为
-                                            BufferedImage bufferedImage = BASE64DecodedMultipartFile.base64ToBufferedImage(autograph);
-                                            if (bufferedImage != null) {
-                                                // java图片
-                                                o.put(oKey, Pictures.ofBufferedImage(bufferedImage, PictureType.PNG)
-                                                        .size(70, 30).create());
-                                            }
+                                        try{
+                                            String autograph = o.get(oKey).toString();
+                                            if (StringUtils.isNotBlank(autograph)) {
+                                                if(autograph.indexOf("/dcm") <= -1){
+                                                    //转换为
+                                                    BufferedImage bufferedImage = BASE64DecodedMultipartFile.base64ToBufferedImage(autograph);
+                                                    if (bufferedImage != null) {
+                                                        // java图片
+                                                        o.put(oKey, Pictures.ofBufferedImage(bufferedImage, PictureType.PNG)
+                                                                .size(70, 30).create());
+                                                    }
+                                                }else{
+                                                    String classPath = getClassPath();
+                                                    String imgPath = classPath.split(":")[0] + ":" + UploadFileUtils.deletePath + autograph.replace("/tempFileUrl/","/");
 
+                                                    // 图片流
+                                                    o.put(oKey, Pictures.ofStream(new FileInputStream(imgPath), PictureType.JPEG)
+                                                            .size(70, 30).create());
+                                                }
+                                            }
+                                        } catch (Exception e) { //捕获任何异常
+                                            continue; //将跳过此迭代并跳转到下一个
                                         }
                                     }
                                     if(oKey.indexOf("Left") > -1){
@@ -972,29 +1308,49 @@ public class DocUtil {
                         }
                     }
                     if (key.indexOf("Autograph") > -1) {
-                        String autograph = map.get(key).toString();
-                        if (StringUtils.isNotBlank(autograph)) {
-                            //转换为
-                            BufferedImage bufferedImage = BASE64DecodedMultipartFile.base64ToBufferedImage(autograph);
-                            if (bufferedImage != null) {
-                                // java图片
-                                map.put(key, Pictures.ofBufferedImage(bufferedImage, PictureType.PNG)
-                                        .size(70, 30).create());
-                            }
+                        try{
+                            String autograph = map.get(key).toString();
+                            if (StringUtils.isNotBlank(autograph)) {
+                                if(autograph.indexOf("/dcm") <= -1){
+                                    //转换为
+                                    BufferedImage bufferedImage = BASE64DecodedMultipartFile.base64ToBufferedImage(autograph);
+                                    if (bufferedImage != null) {
+                                        // java图片
+                                        map.put(key, Pictures.ofBufferedImage(bufferedImage, PictureType.PNG)
+                                                .size(70, 30).create());
+                                    }
+                                }else{
+                                    String classPath = getClassPath();
+                                    String imgPath = classPath.split(":")[0] + ":" + UploadFileUtils.deletePath + autograph.replace("/tempFileUrl/","/");
 
+                                    // 图片流
+                                    map.put(key, Pictures.ofStream(new FileInputStream(imgPath), PictureType.JPEG)
+                                            .size(70, 30).create());
+                                }
+                            }
+                        } catch (Exception e) { //捕获任何异常
+                            continue; //将跳过此迭代并跳转到下一个
                         }
                     }
                     if (key.indexOf("jthctImage") > -1) {
                         String autograph = map.get(key).toString();
                         if (StringUtils.isNotBlank(autograph)) {
-                            //转换为
-                            BufferedImage bufferedImage = BASE64DecodedMultipartFile.base64ToBufferedImage(autograph);
-                            if (bufferedImage != null) {
-                                // java图片
-                                map.put(key, Pictures.ofBufferedImage(bufferedImage, PictureType.PNG)
+                            if(autograph.indexOf("/dcm") <= -1){
+                                //转换为
+                                BufferedImage bufferedImage = BASE64DecodedMultipartFile.base64ToBufferedImage(autograph);
+                                if (bufferedImage != null) {
+                                    // java图片
+                                    map.put(key, Pictures.ofBufferedImage(bufferedImage, PictureType.PNG)
+                                            .size(210, 100).create());
+                                }
+                            }else{
+                                String classPath = getClassPath();
+                                String imgPath = classPath.split(":")[0] + ":" + UploadFileUtils.deletePath + autograph.replace("/tempFileUrl/","/");
+
+                                // 图片流
+                                map.put(key, Pictures.ofStream(new FileInputStream(imgPath), PictureType.JPEG)
                                         .size(210, 100).create());
                             }
-
                         }
                     }
                 }
@@ -1042,20 +1398,76 @@ public class DocUtil {
             Document doc = new Document(path);
             doc3.appendDocument(doc, ImportFormatMode.USE_DESTINATION_STYLES);
         }
-        //统计页数
+        /*//统计页数
         int pages = doc3.getPageCount();
+        if(outPath.indexOf("首页封面") > -1){
+            pages = pages - 1;
+        }
         int number = pages%2;
         if(number != 0 && !flag){//奇数页
             String newPathHead = inPaths.get(0).split("pdf/word/")[0];//头部路径
             newPathHead += "2022-01-21/空白页.docx";
             Document doc0 = new Document(newPathHead);
             doc3.appendDocument(doc0, ImportFormatMode.KEEP_SOURCE_FORMATTING);
-        }
+        }*/
+
         doc3.save(outputStreamWord,SaveFormat.DOCX);
         outputStreamWord.close();
-        Document docPdf = new Document(outPathWord);
-        docPdf.save(outputStream,SaveFormat.PDF);
-        outputStream.close();
+
+//        if(false){
+        if(utils.socketConfig.getIsWpsPrint()){
+            wordChangePdfWPS(outPathWord,outPath);//office转pdf
+        }else{
+            Document docPdf = new Document(outPathWord);
+            docPdf.save(outputStream, SaveFormat.PDF);
+            outputStream.close();
+        }
+
+
+
+
+
+
+//        PDTT.WordToPDF(outPathWord,outPath);//openoffice转pdf
+    }
+
+    public Boolean getSockIsWpsPrint(){
+        return socketConfig.getIsWpsPrint();
+    }
+
+
+
+    /***
+     *
+     * 使用WPS 转换pdf
+     *
+     * @param inputFile
+     * @param pdfFile
+     * @return
+     */
+    public static void wordChangePdfWPS(String inputFile, String pdfFile) {
+        try {
+            ComThread.InitSTA(true);
+            // 打开Word应用程序
+            ActiveXComponent app = new ActiveXComponent("KWPS.Application");
+            // 设置Word不可见
+            app.setProperty("Visible", new Variant(false));
+            // 禁用宏
+            app.setProperty("AutomationSecurity", new Variant(3));
+            // 获得Word中所有打开的文档，返回documents对象
+            Dispatch docs = app.getProperty("Documents").toDispatch();
+            // 调用Documents对象中Open方法打开文档，并返回打开的文档对象Document
+            Dispatch doc = Dispatch.call(docs, "Open", inputFile, false, true).toDispatch();
+            // word保存为pdf格式宏，值为17
+            Dispatch.call(doc, "ExportAsFixedFormat", pdfFile, 17);
+            // 关闭文档
+            Dispatch.call(doc, "Close", false);
+            // 关闭Word应用程序
+            app.invoke("Quit", 0);
+            ComThread.Release();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
 

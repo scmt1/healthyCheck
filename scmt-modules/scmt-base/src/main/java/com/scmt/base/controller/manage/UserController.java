@@ -1,20 +1,9 @@
 package com.scmt.base.controller.manage;
 
 import cn.hutool.core.util.RandomUtil;
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.poi.word.DocUtil;
 import com.alibaba.fastjson.JSONObject;
-import com.aliyuncs.CommonRequest;
-import com.aliyuncs.CommonResponse;
-import com.aliyuncs.DefaultAcsClient;
-import com.aliyuncs.IAcsClient;
-import com.aliyuncs.http.MethodType;
-import com.aliyuncs.profile.DefaultProfile;
-import com.tencentcloudapi.common.Credential;
-import com.tencentcloudapi.common.profile.ClientProfile;
-import com.tencentcloudapi.common.profile.HttpProfile;
-import com.tencentcloudapi.common.exception.TencentCloudSDKException;
-import com.tencentcloudapi.sms.v20210111.SmsClient;
-import com.tencentcloudapi.sms.v20210111.models.*;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.scmt.base.async.AddMessage;
 import com.scmt.base.utils.BASE64DecodedMultipartFile;
@@ -39,7 +28,12 @@ import com.scmt.core.entity.UserRole;
 import com.scmt.core.service.*;
 import com.scmt.core.service.mybatis.IUserRoleService;
 import com.scmt.core.vo.RoleDTO;
-import cn.hutool.core.util.StrUtil;
+import com.tencentcloudapi.common.Credential;
+import com.tencentcloudapi.common.profile.ClientProfile;
+import com.tencentcloudapi.common.profile.HttpProfile;
+import com.tencentcloudapi.sms.v20210111.SmsClient;
+import com.tencentcloudapi.sms.v20210111.models.SendSmsRequest;
+import com.tencentcloudapi.sms.v20210111.models.SendSmsResponse;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -56,19 +50,16 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-import java.net.URL;
-import java.security.NoSuchAlgorithmException;
-
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
-import javax.sql.rowset.serial.SerialBlob;
 import javax.validation.Valid;
+import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.URL;
 import java.net.URLDecoder;
 import java.security.MessageDigest;
-import java.sql.Blob;
+import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -451,6 +442,16 @@ public class UserController {
     public Result<User> getUserInfo() {
 
         User u = securityUtil.getCurrUser();
+        if(u!=null && u.getAutograph()!=null){
+            //字节转字符串
+            byte[] blob = (byte[]) u.getAutograph();
+            if(blob!=null){
+                String avatarNow = new String(blob);
+                if(avatarNow.indexOf("/dcm") > -1){
+                    u.setAutographFile(avatarNow);
+                }
+            }
+        }
         // 清除持久上下文环境 避免后面语句导致持久化
         entityManager.clear();
         u.setPassword(null);
@@ -519,8 +520,8 @@ public class UserController {
     @SystemLog(description = "修改用户自己资料", type = LogType.OPERATION)
     public Result<Object> editOwn(User u) {
 
-        String urlPath = "";
         User old = securityUtil.getCurrUser();
+        String urlPath = "";
         // 不能修改的字段
         u.setUsername(old.getUsername()).setPassword(old.getPassword()).setType(old.getType()).setStatus(old.getStatus());
 
@@ -534,12 +535,48 @@ public class UserController {
         try {
             if (u.getAutographFile() != null && StringUtils.isNotBlank(u.getAutographFile())) {
                 MultipartFile imgFile = BASE64DecodedMultipartFile.base64ToMultipart(u.getAutographFile());
-                u.setAutograph(imgFile.getBytes());
+                /*u.setAutograph(imgFile.getBytes());*/
+                //获取所在路径
+                String strClassName = DocUtil.class.getName();
+                String strPackageName = "";
+                if (DocUtil.class.getPackage() != null) {
+                    strPackageName = DocUtil.class.getPackage().getName();
+                }
+                String strClassFileName = "";
+                if (!"".equals(strPackageName)) {
+                    strClassFileName = strClassName.substring(strPackageName.length() + 1,
+                            strClassName.length());
+                } else {
+                    strClassFileName = strClassName;
+                }
+                URL url = null;
+                url = DocUtil.class.getResource(strClassFileName + ".class");
+                String strURL = url.toString();
+                strURL = strURL.substring(strURL.indexOf('/') + 1, strURL.lastIndexOf('/'));
+                //返回当前类的路径，并且处理路径中的空格，因为在路径中出现的空格如果不处理的话，
+                //在访问时就会从空格处断开，那么也就取不到完整的信息了，这个问题在web开发中尤其要注意
+                strURL = strURL.replaceAll("%20", " ");
+                String classPath = strURL.split(":")[0];
+                //时间戳
+                SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHHmmss");
+                String DataStr = format.format(new Date());
+                String name = imgFile.getOriginalFilename();
+                File file1 = new File(classPath+":" + "/usr/local/zsyz/uploadfile/tempfile/" +"dcm/checkSign/" + DataStr + "/" + name);
+                //存在则删除
+                if(file1.isFile() && file1.exists()){
+                    file1.delete();
+                    file1 = new File(classPath+":" + "/usr/local/zsyz/uploadfile/tempfile/" +"dcm/checkSign/" + DataStr + "/" + name);
+                }
+                FileUtils.writeByteArrayToFile(file1,imgFile.getBytes());
+                String urlNew = "/tempFileUrl/tempfile/dcm/checkSign/" + DataStr + "/" + name;
+                u.setAutograph(urlNew.getBytes());
+                urlPath = urlNew;
             }
         }catch (Exception e){}
 
         userService.update(u);
-        return ResultUtil.success("修改成功");
+//        return ResultUtil.success("修改成功");
+        return ResultUtil.data(urlPath,"修改成功");
     }
 
     /**
@@ -554,9 +591,16 @@ public class UserController {
     @SystemLog(description = "修改密码", type = LogType.OPERATION)
     public Result<Object> modifyPass(@ApiParam("旧密码") @RequestParam String password,
                                      @ApiParam("新密码") @RequestParam String newPass,
-                                     @ApiParam("密码强度") @RequestParam String passStrength) {
+                                     @ApiParam("密码强度") @RequestParam String passStrength,
+                                     @ApiParam("账号数据") @RequestParam String accountArr) {
 
-        User user = securityUtil.getCurrUser();
+        User user = new User();
+        User account = JSONObject.parseObject(accountArr,User.class);
+        if (account == null){
+            user = securityUtil.getCurrUser();
+        }else {
+            user = account;
+        }
         // 在线DEMO所需
         if ("test".equals(user.getUsername()) || "test2".equals(user.getUsername())) {
             return ResultUtil.error("演示账号不支持修改密码");
@@ -594,7 +638,17 @@ public class UserController {
             u.setRoles(roleDTOList);
             // 游离态 避免后面语句导致持久化
             entityManager.detach(u);
-            u.setPassword(null);
+            if(u!=null && u.getAutograph()!=null){
+                //字节转字符串
+                byte[] blob = (byte[]) u.getAutograph();
+                if(blob!=null){
+                    String avatarNow = new String(blob);
+                    if(avatarNow.indexOf("/dcm") > -1){
+                        u.setAutographFile(avatarNow);
+                    }
+                }
+            }
+            /*u.setPassword(null);*/
         }
         return new ResultUtil<Page<User>>().setData(page);
     }
@@ -635,6 +689,14 @@ public class UserController {
         entityManager.clear();
         for (User u : list) {
             u.setPassword(null);
+            //字节转字符串
+            byte[] blob = (byte[]) u.getAutograph();
+            if(blob!=null){
+                String avatarNow = new String(blob);
+                if(avatarNow.indexOf("/dcm") > -1){
+                    u.setAutographFile(avatarNow);
+                }
+            }
         }
         return new ResultUtil<List<User>>().setData(list);
     }
@@ -669,7 +731,41 @@ public class UserController {
         try {
             if (u.getAutographFile() != null && StringUtils.isNotBlank(u.getAutographFile())) {
                 MultipartFile imgFile = BASE64DecodedMultipartFile.base64ToMultipart(u.getAutographFile());
-                u.setAutograph(imgFile.getBytes());
+                /*u.setAutograph(imgFile.getBytes());*/
+                //获取所在路径
+                String strClassName = DocUtil.class.getName();
+                String strPackageName = "";
+                if (DocUtil.class.getPackage() != null) {
+                    strPackageName = DocUtil.class.getPackage().getName();
+                }
+                String strClassFileName = "";
+                if (!"".equals(strPackageName)) {
+                    strClassFileName = strClassName.substring(strPackageName.length() + 1,
+                            strClassName.length());
+                } else {
+                    strClassFileName = strClassName;
+                }
+                URL url = null;
+                url = DocUtil.class.getResource(strClassFileName + ".class");
+                String strURL = url.toString();
+                strURL = strURL.substring(strURL.indexOf('/') + 1, strURL.lastIndexOf('/'));
+                //返回当前类的路径，并且处理路径中的空格，因为在路径中出现的空格如果不处理的话，
+                //在访问时就会从空格处断开，那么也就取不到完整的信息了，这个问题在web开发中尤其要注意
+                strURL = strURL.replaceAll("%20", " ");
+                String classPath = strURL.split(":")[0];
+                //时间戳
+                SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHHmmss");
+                String DataStr = format.format(new Date());
+                String name = imgFile.getOriginalFilename();
+                File file1 = new File(classPath+":" + "/usr/local/zsyz/uploadfile/tempfile/" +"dcm/checkSign/" + DataStr + "/" + name);
+                //存在则删除
+                if(file1.isFile() && file1.exists()){
+                    file1.delete();
+                    file1 = new File(classPath+":" + "/usr/local/zsyz/uploadfile/tempfile/" +"dcm/checkSign/" + DataStr + "/" + name);
+                }
+                FileUtils.writeByteArrayToFile(file1,imgFile.getBytes());
+                String urlNew = "/tempFileUrl/tempfile/dcm/checkSign/" + DataStr + "/" + name;
+                u.setAutograph(urlNew.getBytes());
             }
         }catch (Exception e){}
         User user = userService.save(u);
@@ -720,9 +816,45 @@ public class UserController {
         try {
             if (u.getAutographFile() != null && StringUtils.isNotBlank(u.getAutographFile())) {
                 MultipartFile imgFile = BASE64DecodedMultipartFile.base64ToMultipart(u.getAutographFile());
-                u.setAutograph(imgFile.getBytes());
+                /*u.setAutograph(imgFile.getBytes());*/
+                //获取所在路径
+                String strClassName = DocUtil.class.getName();
+                String strPackageName = "";
+                if (DocUtil.class.getPackage() != null) {
+                    strPackageName = DocUtil.class.getPackage().getName();
+                }
+                String strClassFileName = "";
+                if (!"".equals(strPackageName)) {
+                    strClassFileName = strClassName.substring(strPackageName.length() + 1,
+                            strClassName.length());
+                } else {
+                    strClassFileName = strClassName;
+                }
+                URL url = null;
+                url = DocUtil.class.getResource(strClassFileName + ".class");
+                String strURL = url.toString();
+                strURL = strURL.substring(strURL.indexOf('/') + 1, strURL.lastIndexOf('/'));
+                //返回当前类的路径，并且处理路径中的空格，因为在路径中出现的空格如果不处理的话，
+                //在访问时就会从空格处断开，那么也就取不到完整的信息了，这个问题在web开发中尤其要注意
+                strURL = strURL.replaceAll("%20", " ");
+                String classPath = strURL.split(":")[0];
+                //时间戳
+                SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHHmmss");
+                String DataStr = format.format(new Date());
+                String name = imgFile.getOriginalFilename();
+                File file1 = new File(classPath+":" + "/usr/local/zsyz/uploadfile/tempfile/" +"dcm/checkSign/" + DataStr + "/" + name);
+                //存在则删除
+                if(file1.isFile() && file1.exists()){
+                    file1.delete();
+                    file1 = new File(classPath+":" + "/usr/local/zsyz/uploadfile/tempfile/" +"dcm/checkSign/" + DataStr + "/" + name);
+                }
+                FileUtils.writeByteArrayToFile(file1,imgFile.getBytes());
+                String urlNew = "/tempFileUrl/tempfile/dcm/checkSign/" + DataStr + "/" + name;
+                u.setAutograph(urlNew.getBytes());
             }
-        }catch (Exception e){}
+        }catch (Exception e){
+            e.printStackTrace();
+        }
         u.setPassword(old.getPassword());
         userService.update(u);
         // 删除该用户角色

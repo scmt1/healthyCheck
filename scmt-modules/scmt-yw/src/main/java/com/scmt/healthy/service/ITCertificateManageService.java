@@ -38,4 +38,14 @@ public interface ITCertificateManageService extends IService<TCertificateManage>
 	* @param response response参数
 	*/
 	public void download(TCertificateManage tCertificateManage, HttpServletResponse response) ;
+
+	/**
+	 * 功能描述： 根据personId查询数据
+	 * @param ids 查询参数
+	 */
+    List<TCertificateManage> getByTCertificateManageList(String[] ids);
+	/**
+	 * 功能描述： 查询表中最大编码
+	 */
+	String findMaxOldNum();
 }

@@ -1,24 +1,23 @@
 package com.scmt.healthy.serviceimpl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
-import com.scmt.healthy.entity.TGroupPerson;
-import com.scmt.healthy.mapper.TProTypeMapper;
-import com.scmt.healthy.entity.TCombo;
-import com.scmt.healthy.service.ITComboService;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.scmt.core.common.vo.PageVo;
 import com.scmt.core.common.vo.SearchVo;
-import com.scmt.healthy.mapper.TComboMapper;
 import com.scmt.core.utis.FileUtil;
-import javax.servlet.http.HttpServletResponse;
-import org.springframework.stereotype.Service;
+import com.scmt.healthy.entity.TCheckOrg;
+import com.scmt.healthy.entity.TCombo;
+import com.scmt.healthy.mapper.TComboMapper;
+import com.scmt.healthy.service.ITComboService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
-import java.util.*;
+import javax.servlet.http.HttpServletResponse;
 import java.text.SimpleDateFormat;
+import java.util.*;
 
 /**
  *@author
@@ -47,7 +46,8 @@ public class TComboServiceImpl extends ServiceImpl<TComboMapper, TCombo> impleme
 			queryWrapper = LikeAllFeild(tCombo,searchVo);
 		}
 		//queryWrapper.orderByDesc("create_time");
-		queryWrapper.orderByAsc("order_num");//名称排序
+//		queryWrapper.orderByAsc("order_num");//名称排序
+		queryWrapper.orderByAsc("name");//名称排序
 		IPage<TCombo> result = tComboMapper.selectPage(pageData, queryWrapper);
 		return  result;
 	}
@@ -150,6 +150,16 @@ public class TComboServiceImpl extends ServiceImpl<TComboMapper, TCombo> impleme
 		return list;
 	}
 
+//	@Override
+//	public List<TCombo> getOrgAndComboData(String id) {
+//		QueryWrapper<TCombo> queryWrapper = new QueryWrapper();
+//		queryWrapper.eq("t_check_org.id",id);
+//		List<TCombo> orgAndComboData = tComboMapper.getOrgAndComboData(queryWrapper);
+//		return orgAndComboData;
+//	}
+
+
+
 	@Override
 	public TCombo getTComboByPersonId(String personId,String hazardFactors,String content) {
 		return tComboMapper.getTComboByPersonId(personId,hazardFactors,content);
@@ -224,4 +234,64 @@ public class TComboServiceImpl extends ServiceImpl<TComboMapper, TCombo> impleme
 		return queryWrapper;
 
 }
+
+
+	@Override
+	public List<TCombo> getOrgAndComboData(TCheckOrg tCheckOrg) {
+		QueryWrapper<TCombo> queryWrapper = new QueryWrapper();
+		queryWrapper.eq("t_check_org.id",tCheckOrg.getId());
+		queryWrapper.and(a->a.eq("t_combo.type",tCheckOrg.getCombosType()));
+		if("职业体检".equals(tCheckOrg.getCombosType()) && StringUtils.isNotBlank(tCheckOrg.getCareerStage())){
+			queryWrapper.and(i -> i.like("t_combo.career_stage",tCheckOrg.getCareerStage()));
+		}
+		List<TCombo> orgAndComboData = tComboMapper.getOrgAndComboData(queryWrapper);
+		return orgAndComboData;
+	}
+
+	/**
+	 * 根据套餐id获取套餐信息
+	 * @param id
+	 * @return
+	 */
+	@Override
+	public TCombo getTCombo(String id) {
+		QueryWrapper<TCombo> queryWrapper = new QueryWrapper<>();
+		queryWrapper.eq("t_combo.id",id);
+		return tComboMapper.getTCombo(queryWrapper);
+	}
+
+	/**
+	 * 根据机构id获取套餐分页列表
+	 * @param tCombo
+	 * @param searchVo
+	 * @param pageVo
+	 * @param checkOrgId
+	 * @return
+	 */
+	@Override
+	public IPage<TCombo> getComboListInfoByPage(TCombo tCombo, SearchVo searchVo, PageVo pageVo,String checkOrgId) {
+		int page = 1;
+		int limit = 10;
+		if (pageVo != null) {
+			if (pageVo.getPageNumber() != 0) {
+				page = pageVo.getPageNumber();
+			}
+			if (pageVo.getPageSize() != 0) {
+				limit = pageVo.getPageSize();
+			}
+		}
+		Page<TCombo> pageData = new Page<>(page, limit);
+		QueryWrapper<TCombo> queryWrapper = new QueryWrapper<>();
+		if(tCombo != null){
+			queryWrapper = LikeAllFeild(tCombo,searchVo);
+		}
+		IPage<TCombo> result = tComboMapper.selectComboListByPage(queryWrapper,pageData,checkOrgId);
+		List<TCombo> list = result.getRecords();
+		//设置每个套餐价格
+		for (TCombo Combo:list) {
+			Integer price = tComboMapper.selectTComboPriceById(Combo.getId());
+			Combo.setPrice(price);
+		}
+		return result;
+	}
 }

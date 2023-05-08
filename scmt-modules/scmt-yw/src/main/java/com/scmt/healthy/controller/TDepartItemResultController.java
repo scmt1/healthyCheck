@@ -204,6 +204,25 @@ public class TDepartItemResultController{
     }
 
     /**
+     * 功能描述：分页查询阳性结果结果数据
+     * @param searchVo 需要模糊查询的信息
+     * @param pageVo 分页参数
+     * @return 返回获取结果
+     */
+    @SystemLog(description = "分页查询阳性结果结果数据(复查)", type = LogType.OPERATION)
+    @ApiOperation("分页查询阳性结果结果数据(复查)")
+    @GetMapping("querySummaryResultListReview")
+    public Result<Object> querySummaryResultListReview(TDepartItemResult  tDepartItemResult, SearchVo searchVo, PageVo pageVo){
+        try {
+            IPage<TDepartItemResult> result =tDepartItemResultService.querySummaryResultListReviewByPage(tDepartItemResult, searchVo, pageVo);
+            return ResultUtil.data(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResultUtil.error("查询异常:" + e.getMessage());
+        }
+    }
+
+    /**
      * 功能描述：查询检查项目及结果
      * @param personId 人员id
      * @param officeId 科室id

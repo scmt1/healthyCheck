@@ -3,7 +3,6 @@ package com.scmt.healthy.controller;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.baomidou.mybatisplus.core.conditions.query.Query;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
@@ -16,17 +15,15 @@ import com.scmt.core.common.vo.Result;
 import com.scmt.core.common.vo.SearchVo;
 import com.scmt.healthy.entity.*;
 import com.scmt.healthy.service.*;
-import com.scmt.healthy.utils.BASE64DecodedMultipartFile;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
-import org.apache.ibatis.annotations.Param;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
+
+import javax.transaction.Transactional;
 
 import javax.servlet.http.HttpServletResponse;
-import javax.sql.rowset.serial.SerialBlob;
-import java.sql.Blob;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -66,6 +63,9 @@ public class TDepartResultController {
     @Autowired
     private IRelationPersonProjectCheckService iRelationPersonProjectCheckService;
 
+    @Autowired
+    private ITReviewPersonService itReviewPersonService;
+
     /**
      * 功能描述：添加组合项目检查结果以及添加基础项目结果
      *
@@ -75,6 +75,7 @@ public class TDepartResultController {
     @SystemLog(description = "添加组合项目检查结果以及添加基础项目结果", type = LogType.OPERATION)
     @ApiOperation("添加组合项目检查结果以及添加基础项目结果")
     @PostMapping("addTDepartResult")
+    @Transactional(rollbackOn = { Exception.class })
     public Result<Object> addTDepartResult(@RequestBody String form) {
         try {
             if (StringUtils.isBlank(form)) {
@@ -96,70 +97,116 @@ public class TDepartResultController {
             String officeId = groupItem.getOfficeId();
             String officeName = groupItem.getOfficeName();
             if (groupItem == null) {
-                return ResultUtil.error("参数为空，请联系管理员！");
+                return ResultUtil.error("组合项结果参数为空，请联系管理员！");
+            }
+            if (tOrderGroupItemProjects == null) {
+                return ResultUtil.error("基础项结果参数为空，请联系管理员！");
             }
 
             TDepartResult dr = groupItem.getDepartResult();
-            if (dr.getGroupItemName().indexOf("(复)") > -1) {
+            if (StringUtils.isNotBlank( dr.getGroupItemName()) && dr.getGroupItemName().indexOf("(复)") > -1) {
                 dr.setIsRecheck(1);
             }
             dr.setId(UUID.randomUUID().toString().replaceAll("-", ""));
             dr.setIsFile(groupItem.getIsFile());
             dr.setUrl(groupItem.getDepartResult().getUrl());
             String personId = dr.getPersonId();
-            /*//判断是否是弃检项目
-            QueryWrapper<RelationPersonProjectCheck> wrapper = new QueryWrapper<>();
-            wrapper.eq("person_id", personId);
-            wrapper.eq("office_id", groupItem.getOfficeId());
-            wrapper.eq("order_group_item_id", tOrderGroupItemProjects.get(0).getDepartItemResults().getOrderGroupItemId());
-            RelationPersonProjectCheck one0 = iRelationPersonProjectCheckService.getOne(wrapper);
-            if(one0 != null && StringUtils.isNotBlank(one0.getId())){
-                if(one0.getState() == 2){
-                    return ResultUtil.error("当前项目已弃检！");
-                }
-                //更改检查状态
-//                one0.setState(1);
-//                iRelationPersonProjectCheckService.updateById(one0);
-            }*/
+
             //检查人员信息
-            TGroupPerson byId = personService.getById(personId);
+            TReviewPerson tReviewPerson = itReviewPersonService.getById(personId);
+            String personIdNow = "";
+            Boolean isUpdate = false;
+            if(tReviewPerson!=null && tReviewPerson.getFirstPersonId()!=null && StringUtils.isNotBlank(tReviewPerson.getFirstPersonId())){
+                personIdNow = tReviewPerson.getFirstPersonId();
+                isUpdate = true;
+            }else{
+                personIdNow = personId;
+                isUpdate = false;
+            }
+            TGroupPerson byId = personService.getById(personIdNow);
             byId.setAvatar(null);
             TDepartResult one  = null;
             String oldgroup_item_id = null;
+            boolean isAddRes = false;//是否是新增
             if (dr != null) {
                 //界面未刷新 可能提交多条。
-                QueryWrapper<TDepartResult> queryWrapper = new QueryWrapper<>();
+                //组合项结果查询
+                QueryWrapper<TDepartResult> queryWrapperD = new QueryWrapper<>();
+                queryWrapperD.eq("person_id", personId);
+                queryWrapperD.eq("del_flag", 0);
+                queryWrapperD.and(wrapper -> wrapper.eq("group_item_id", dr.getGroupItemId()).or().eq("group_item_name", dr.getGroupItemName()));
+                List<TDepartResult> oneListD = departResultService.list(queryWrapperD);
+                //基础项结果查询
+                QueryWrapper<TDepartItemResult> queryWrapper = new QueryWrapper<>();
                 queryWrapper.eq("person_id", personId);
                 queryWrapper.eq("del_flag", 0);
-                queryWrapper.and(wrapper -> wrapper.eq("group_item_id", dr.getGroupItemId()).or().eq("group_item_name", dr.getGroupItemName()));
-                List<TDepartResult> oneList = departResultService.list(queryWrapper);
+                queryWrapper.and(wrapper -> wrapper.eq("order_group_item_id", dr.getGroupItemId()));
+                List<TDepartItemResult> oneList = itemResultService.list(queryWrapper);
 
-                if (oneList != null && oneList.size()>0) { //已经有
-                    one = oneList.get(0);
+                if (oneListD != null && oneListD.size()>0 && oneList != null && oneList.size()>0) { //已经有
+                    one = oneListD.get(0);
                     oldgroup_item_id = one.getGroupItemId();
                     //修改
                     one.setUpdateId(currendId);
                     one.setGroupItemId( dr.getGroupItemId());
-                    one.setUpdateDate(new Date());
+                    one.setUpdateDate(new Date(System.currentTimeMillis()));
                     one.setCheckDoc(securityUtil.getCurrUser().getNickname());
-                    one.setCheckDate(new Date());
+                    if(StringUtils.isBlank(dr.getCreateId())){
+                        one.setCreateId(currendId);
+                    }
+                    else{
+                        one.setCreateId(dr.getCreateId());
+                    }
+                    if(dr.getCheckDate()==null){
+                        one.setCheckDate(new Date(System.currentTimeMillis()));
+                    }else{
+                        one.setCheckDate(dr.getCheckDate());
+                    }
+                    if(StringUtils.isBlank(dr.getCheckDoc())){
+                        one.setCheckDoc(securityUtil.getCurrUser().getNickname());
+                    }else{
+                        one.setCheckDoc(dr.getCheckDoc());
+                    }
+                    if(StringUtils.isNotBlank(dr.getCheckSignPath())){
+                        one.setCheckSign(dr.getCheckSignPath().getBytes());
+                    }
                     one.setDiagnoseSum(dr.getDiagnoseSum());
                     one.setDiagnoseTip(dr.getDiagnoseTip());
                     one.setUrl(dr.getUrl());
-                    tDepartResultService.updateById(one);
+                    boolean resU = tDepartResultService.updateById(one);
+                    if(!resU){
+                        //手工回滚异常
+                        TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                        return ResultUtil.error( "保存失败");
+                    }
                 } else {
+                    isAddRes = true;
                     //新增
                     dr.setDelFlag(0);
-                    dr.setCreateId(currendId);
-                    dr.setCreateDate(new Date());
+                    if(StringUtils.isBlank(dr.getCreateId())){
+                        dr.setCreateId(currendId);
+                    }
+
+//                    dr.setCreateDate(new Date());
                     dr.setCheckNum(1);
                     dr.setState(0);
-                    dr.setCheckDoc(securityUtil.getCurrUser().getNickname());
-                    dr.setCheckDate(new Date());
-                    dr.setCheckSign(securityUtil.getCurrUser().getAutograph());
+                    if(dr.getCheckDate()==null){
+                        dr.setCheckDate(new Date(System.currentTimeMillis()));
+                    }
+                    if(StringUtils.isBlank(dr.getCheckDoc())){
+                        dr.setCheckDoc(securityUtil.getCurrUser().getNickname());
+                    }
+                    if(StringUtils.isNotBlank(dr.getCheckSignPath())){
+                        dr.setCheckSign(dr.getCheckSignPath().getBytes());
+                    }
+                    if(dr.getCheckSign()==null){
+                        dr.setCheckSign(securityUtil.getCurrUser().getAutograph());
+                    }
+
                     dr.setOfficeId(officeId);
                     dr.setOfficeName(officeName);
-                    boolean save = tDepartResultService.save(dr);
+
+                    boolean save = tDepartResultService.saveOrUpdate(dr);
                     //已检查修改组合项目检查状态
                     if (save) {
                         String id = groupItem.getId();
@@ -167,9 +214,18 @@ public class TDepartResultController {
                         if(byId1 != null){
                             byId1.setStatus(1);
                             byId1.setUpdateId(securityUtil.getCurrUser().getId());
-                            byId1.setUpdateTime(new Date());
-                            itemService.updateById(byId1);
+                            byId1.setUpdateTime(new Date(System.currentTimeMillis()));
+                            boolean resb = itemService.updateById(byId1);
+                            if(!resb){
+                                //手工回滚异常
+                                TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                                return ResultUtil.error( "保存失败");
+                            }
                         }
+                    }else{
+                        //手工回滚异常
+                        TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                        return ResultUtil.error( "保存失败");
                     }
                 }
 
@@ -187,18 +243,31 @@ public class TDepartResultController {
                     queryWrapper.eq("order_group_item_id",oldgroup_item_id);
                 }
 
-                itemResultService.remove(queryWrapper);
+                boolean resDir = itemResultService.remove(queryWrapper);
+                if(!resDir && !isAddRes){//删除失败 并且 不是新增
+                    //手工回滚异常
+                    TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                    return ResultUtil.error( "保存失败");
+                }
                 for (TOrderGroupItemProject itemProject : tOrderGroupItemProjects) {
                     TDepartItemResult departItemResults = itemProject.getDepartItemResults();
-                    departItemResults.setId(UUID.randomUUID().toString().replaceAll("-", ""));
+//                    departItemResults.setId(UUID.randomUUID().toString().replaceAll("-", ""));
                     departItemResults.setDelFlag(0);
                     departItemResults.setCreateDate(new Date());
                     departItemResults.setCreateId(currendId);
                     departItemResults.setOrderGroupItemProjectId(itemProject.getId());
                     departItemResults.setOfficeId(officeId);
                     departItemResults.setOfficeName(officeName);
-                    departItemResults.setCheckDoc(securityUtil.getCurrUser().getUsername());
-                    departItemResults.setCheckDate(new Date());
+                    departItemResults.setCheckDoc(securityUtil.getCurrUser().getNickname());
+                    departItemResults.setCheckDate(new Date(System.currentTimeMillis()));
+                    if(dr!=null){
+                        if(dr.getCheckDoc()!=null){
+                            departItemResults.setCheckDoc(dr.getCheckDoc());
+                        }
+                        if(dr.getCheckDate()!=null){
+                            departItemResults.setCheckDate(dr.getCheckDate());
+                        }
+                    };
                     departItemResults.setIgnoreStatus(1);
                     departItemResults.setOrderNum(itemProject.getOrderNum());
                     departItemResults.setDepartResultId(dr.getId());
@@ -209,7 +278,13 @@ public class TDepartResultController {
                 }
                 boolean flag = false;
                 boolean b = itemResultService.saveBatch(addList);
-                if (b && byId.getIsWzCheck() == 1 && byId.getIsPass() < 3) {
+                if(!b){
+                    //手工回滚异常
+                    TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                    return ResultUtil.error( "保存失败");
+                }
+//                boolean b = itemResultService.saveOrUpdateBatch(addList);
+                if (b && byId.getIsWzCheck() == 1 && byId.getIsPass() < 3 && !isUpdate) {
                     //所有检查项       //查询复查检查项和已检项
                     Integer count = itemService.getAllCheckCount(personId, byId.getGroupId());
                     Integer count1 = itemService.getDepartResultCount(personId, byId.getGroupId());
@@ -218,23 +293,57 @@ public class TDepartResultController {
                     checkQueryWrapper.eq("state", 2);
                     checkQueryWrapper.eq("person_id", byId.getId());
                     int count2 = iRelationPersonProjectCheckService.count(checkQueryWrapper);
+                   /* int count2 = 0;*/
 
                     //全部检查完  修改状态为3，到总检
                     if (count1.intValue() >= (count.intValue() - count2)) {
                         byId.setIsPass(3);
                         byId.setUpdateId(securityUtil.getCurrUser().getId());
-                        byId.setUpdateTime(new Date());
-                        personService.updateById(byId);
-                        flag = true;
+                        byId.setUpdateTime(new Date(System.currentTimeMillis()));
+                        flag = personService.updateById(byId);
+                        if(!flag){
+                            //手工回滚异常
+                            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                            return ResultUtil.error( "保存失败");
+                        }
                     }
                     return ResultUtil.data(flag, "保存成功");
+                }else if(isUpdate){
+                    //所有检查项       //查询复查检查项和已检项
+                    Integer count = itemService.getAllCheckCountReview(tReviewPerson.getId(), tReviewPerson.getGroupId());
+                    Integer count1 = itemService.getDepartResultCount(tReviewPerson.getId(), tReviewPerson.getGroupId());
+                    //弃检记录
+                    QueryWrapper<RelationPersonProjectCheck> checkQueryWrapper = new QueryWrapper<>();
+                    checkQueryWrapper.eq("state", 2);
+                    checkQueryWrapper.eq("person_id", tReviewPerson.getId());
+                    int count2 = iRelationPersonProjectCheckService.count(checkQueryWrapper);
+                    /*int count2 = 0;*/
+
+                    //全部检查完  修改状态为3，到总检
+                    if (count1.intValue() >= (count.intValue() - count2) && tReviewPerson.getIsPass()<3) {
+                        QueryWrapper<TReviewPerson> tReviewPersonQueryWrapper = new QueryWrapper<>();
+                        tReviewPersonQueryWrapper.eq("del_flag",0);
+                        tReviewPersonQueryWrapper.eq("id",tReviewPerson.getId());
+                        TReviewPerson tReviewPerson1 = new TReviewPerson();
+                        tReviewPerson1.setIsPass(3);
+                        boolean resRe = itReviewPersonService.update(tReviewPerson1,tReviewPersonQueryWrapper);
+                        if(!resRe){
+                            //手工回滚异常
+                            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                            return ResultUtil.error( "保存失败");
+                        }
+                    }
                 }
                 return ResultUtil.data(true, "保存成功");
             } else {
-                return ResultUtil.error("基础项参数为空");
+                //手工回滚异常
+                TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                return ResultUtil.error("基础项参数为空,保存失败");
             }
         } catch (Exception e) {
             e.printStackTrace();
+            //手工回滚异常
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             return ResultUtil.error("保存异常:" + e.getMessage());
         }
     }
@@ -525,7 +634,7 @@ public class TDepartResultController {
     @SystemLog(description = "根据选择人员中的分组id，查询分组项目", type = LogType.OPERATION)
     @ApiOperation("根据选择人员中的分组id，查询分组项目")
     @GetMapping("/getItemByGroupId")
-    public Result<Object> getPortfolioProjectByGroupId(String groupId, String personId, String type) {
+    public Result<Object> getPortfolioProjectByGroupId(String groupId, String personId, String type,boolean isReview) {
         if (StringUtils.isBlank(groupId)) {
             return ResultUtil.error("参数为空，请联系管理员！！");
         }
@@ -540,13 +649,17 @@ public class TDepartResultController {
             tOrderGroupItem.setGroupId(groupId);
             tOrderGroupItem.setPersonId(personId);
             //分组项目
-            List<TOrderGroupItem> items = itemService.listByQueryWrapper(tOrderGroupItem);
+            List<TOrderGroupItem> items = new ArrayList<>();
+            if(!isReview){
+                items = itemService.listByQueryWrapper(tOrderGroupItem);
+            }
 
             //复查
             TReviewProject tReviewProject = new TReviewProject();
             tReviewProject.setPersonId(personId);
             tReviewProject.setGroupId(groupId);
             tReviewProject.setIsPass(2);
+            tReviewProject.setDelFlag(0);
             if (securityUtil.getDeparmentIds() != null) {
                 tReviewProject.setOfficeList(securityUtil.getDeparmentIds());
             }
@@ -576,6 +689,16 @@ public class TDepartResultController {
             for (TOrderGroupItem item : items) {
                 //是否有检查结果
                 TDepartResult result = departResults.stream().filter(i -> i.getGroupItemId().equals(item.getId())).findFirst().orElse(null);
+                if(result!=null && result.getCheckSign()!=null){
+                    //字节转字符串
+                    byte[] blob = (byte[]) result.getCheckSign();
+                    if(blob!=null){
+                        String avatarNow = new String(blob);
+                        if(avatarNow.indexOf("/dcm") > -1){
+                            result.setCheckSignPath(avatarNow);
+                        }
+                    }
+                }
                 if (result != null) {
                     item.setDepartResult(result);
                 }
@@ -640,6 +763,28 @@ public class TDepartResultController {
                         String groupIdNow = listNow.get(0).getGroupId();
                         t.setPortfolioProjectId(portfolioProjectIdNow);
                         t.setGroupId(groupIdNow);
+                    }
+                    if(t.getCheckSign()!=null){
+                        //字节转字符串
+                        byte[] blob = (byte[]) t.getCheckSign();
+                        if(blob!=null){
+                            String avatarNow = new String(blob);
+                            if(avatarNow.indexOf("/dcm") > -1){
+                                t.setCheckSignPath(avatarNow);
+                            }
+                        }
+                    }
+                }
+            }
+            for (TDepartResult t : items) {
+                if(t.getCheckSign()!=null){
+                    //字节转字符串
+                    byte[] blob = (byte[]) t.getCheckSign();
+                    if(blob!=null){
+                        String avatarNow = new String(blob);
+                        if(avatarNow.indexOf("/dcm") > -1){
+                            t.setCheckSignPath(avatarNow);
+                        }
                     }
                 }
             }
@@ -767,7 +912,7 @@ public class TDepartResultController {
             List<TOrderGroupItemProject> projectList = new ArrayList<>();
 
             for (String str : list) {
-                QueryWrapper<TBaseProject> queryWrapper = new QueryWrapper();
+                QueryWrapper<TBaseProject> queryWrapper = new QueryWrapper<>();
                 queryWrapper.eq("name", str);
                 queryWrapper.eq("del_flag", 0);
                 TBaseProject one = baseProjectService.getOne(queryWrapper);
@@ -819,6 +964,50 @@ public class TDepartResultController {
             String personId = jsonObject.getString("personId");
             Integer result = tDepartResultService.queryTDepartResultByPersonId(Arrays.asList(groupItemIdList), personId);
             return ResultUtil.data(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResultUtil.error("查询异常:" + e.getMessage());
+        }
+    }
+
+    /**
+     * 功能描述：实现分页查询
+     *
+     * @return 返回获取结果
+     */
+    @ApiOperation("查询科室已检查项目数量")
+    @PostMapping("queryTDepartResultStatistics")
+    public Result<Object> queryTDepartResultStatistics(@RequestBody Map<String,Object> data) {
+        try {
+            String startDate = data.get("startDate").toString();
+            String endDate = data.get("endDate").toString();
+            String dept =data.get("dept")!=null? data.get("dept").toString():"";
+            List<String> officeIds=data.get("officeIds")!=null? (List<String>) data.get("officeIds"):new ArrayList<>();
+            List<TDepartResult>  result = tDepartResultService.queryTDepartResultStatistics(startDate, endDate,officeIds,dept);
+            //查询已登记
+            QueryWrapper<TGroupPerson> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("del_flag", 0);
+            queryWrapper.ge("is_pass", 2);
+            queryWrapper.between("regist_date",startDate,endDate);
+            //查询已检查
+            QueryWrapper<TGroupPerson> queryWrapperTwo = new QueryWrapper<>();
+            queryWrapperTwo.eq("del_flag", 0);
+            queryWrapperTwo.ge("is_pass", 3);
+            queryWrapperTwo.between("regist_date",startDate,endDate);
+
+            if(StringUtils.isNotBlank(dept)){
+                queryWrapper.eq("unit_id", dept);
+                queryWrapperTwo.eq("unit_id", dept);
+            }
+            int countRegist = personService.count(queryWrapper);
+
+            int countHealthy = personService.count(queryWrapperTwo);
+            //分装返回
+            Map<String,Object> map = new HashMap<>();
+            map.put("countRegist",countRegist);
+            map.put("countHealthy",countHealthy);
+            map.put("result",result);
+            return ResultUtil.data(map);
         } catch (Exception e) {
             e.printStackTrace();
             return ResultUtil.error("查询异常:" + e.getMessage());

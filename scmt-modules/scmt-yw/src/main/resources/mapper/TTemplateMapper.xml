@@ -162,7 +162,100 @@
             )
         </if>
         <!-- order by order_group_item_project_name asc -->
-        order by t_depart_item_result.order_num,order_group_item_project_name asc
+        order by t_depart_item_result.order_num
+    </select>
+    <select id="getDepartResultListByReviewPersonIds" resultType="com.scmt.healthy.entity.TDepartResult">
+        SELECT
+        t_depart_result.*,
+        t_order_group_item.portfolio_project_id as portfolio_project_id,
+        (CASE t_order_group_item.order_num WHEN  t_order_group_item.order_num THEN t_order_group_item.order_num ELSE t_review_project.order_num END) as order_num_project,
+        t_section_office.order_num as order_num_office
+        FROM
+        t_depart_result
+        LEFT JOIN t_order_group_item ON t_order_group_item.id = t_depart_result.group_item_id
+        LEFT JOIN t_review_project ON t_review_project.id = t_depart_result.group_item_id
+        LEFT JOIN t_section_office ON t_section_office.id = t_depart_result.office_id
+        WHERE t_depart_result.del_flag = 0
+        <if test="personIds != null and personIds.size > 0">
+            and t_depart_result.person_id in (select first_person_id from t_review_person where id in
+            <foreach collection="personIds" item="item" separator="," open="(" close=")">
+                #{item}
+            </foreach>
+            UNION all
+            select id from t_review_person where id in
+            <foreach collection="personIds" item="item" separator="," open="(" close=")">
+                #{item}
+            </foreach>
+            )
+            and t_depart_result.group_item_id IN (
+            SELECT id FROM t_order_group_item WHERE group_id in
+            <foreach collection="groupIds" item="item" separator="," open="(" close=")">
+                #{item}
+            </foreach> AND del_flag = 0
+            union all
+            SELECT id FROM t_review_project WHERE group_id in
+            <foreach collection="groupIds" item="item" separator="," open="(" close=")">
+                #{item}
+            </foreach> AND person_id in
+            <foreach collection="personIds" item="item" separator="," open="(" close=")">
+                #{item}
+            </foreach> and is_pass = 2 AND del_flag = 0
+            )
+        </if>
+        group by t_depart_result.person_id,t_depart_result.group_item_id
+        ORDER BY order_num_office,order_num_project,t_depart_result.create_date ASC
     </select>
 
+    <select id="getDepartItemResultListByReviewPersonIds" resultType="com.scmt.healthy.entity.TDepartItemResult">
+        SELECT
+        t_depart_item_result.*,
+        t_order_group_item_project.short_name,
+        t_order_group_item_project.order_num,
+        t_order_group_item_project.t_order_group_item_id AS group_item_id
+        FROM
+        t_depart_item_result
+        LEFT JOIN t_order_group_item_project ON t_order_group_item_project.id = t_depart_item_result.order_group_item_project_id
+        WHERE t_depart_item_result.del_flag = 0
+        <if test="personIds != null and personIds.size > 0">
+            and t_depart_item_result.person_id in (select first_person_id from t_review_person where id in
+            <foreach collection="personIds" item="item" separator="," open="(" close=")">
+                #{item}
+            </foreach>
+            UNION all
+            select id from t_review_person where id in
+            <foreach collection="personIds" item="item" separator="," open="(" close=")">
+                #{item}
+            </foreach>
+            )
+            and t_depart_item_result.order_group_item_id IN (
+            SELECT id FROM t_order_group_item WHERE group_id in
+            <foreach collection="groupIds" item="item" separator="," open="(" close=")">
+                #{item}
+            </foreach> AND del_flag = 0
+            union all
+            SELECT id FROM t_review_project WHERE group_id in
+            <foreach collection="groupIds" item="item" separator="," open="(" close=")">
+                #{item}
+            </foreach> AND person_id in
+            <foreach collection="personIds" item="item" separator="," open="(" close=")">
+                #{item}
+            </foreach> and is_pass = 2 AND del_flag = 0
+            )
+        </if>
+        <!-- order by order_group_item_project_name asc -->
+        order by t_depart_item_result.order_num
+    </select>
+    <!--根据复查Id查询人员Ids-->
+    <select id="getPersonIdsByReviewPersonIds" resultType="java.lang.String">
+        select first_person_id from t_review_person where id in
+        <foreach collection="personIds" item="item" separator="," open="(" close=")">
+            #{item}
+        </foreach>
+        UNION all
+        select id from t_review_person where id in
+        <foreach collection="personIds" item="item" separator="," open="(" close=")">
+            #{item}
+        </foreach>
+
+    </select>
 </mapper>

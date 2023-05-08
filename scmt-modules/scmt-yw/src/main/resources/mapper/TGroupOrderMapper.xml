@@ -41,7 +41,6 @@
         t_group_order.order_path,
         t_group_unit.name AS group_unit_name  FROM t_group_order
         LEFT JOIN t_group_unit ON t_group_order.group_unit_id = t_group_unit.id
-        LEFT JOIN t_order_group ON t_group_order.id = t_order_group.group_order_id
         ${ew.customSqlSegment}
     </select>
 
@@ -98,6 +97,39 @@
         from t_group_order
         where physical_type =  #{physicalType} and del_flag = 0
     </select>
+    <!--查询订单待审批与已审批数量(主治医师、体检中心主任)-->
+    <select id="getTGroupOrderNumAndByCreateId" resultType="com.scmt.healthy.entity.TGroupOrder">
+        select
+            SUM(CASE WHEN  audit_state = '1' or  audit_state = '2' THEN 1 ELSE 0 END) as waitApprove
+            ,SUM(CASE WHEN  audit_state = '3' THEN 1 ELSE 0 END) as approved
+        from t_group_order
+        where physical_type =  #{physicalType} and del_flag = 0
+    </select>
+    <!--查询订单待审批与已审批数量(三个审批权限都有)-->
+    <select id="getTGroupOrderNumAll" resultType="com.scmt.healthy.entity.TGroupOrder">
+        select
+            SUM(CASE WHEN  audit_state = '1' or  audit_state = '2' or  audit_state = '3' THEN 1 ELSE 0 END) as waitApprove
+            ,SUM(CASE WHEN  audit_state = '4' THEN 1 ELSE 0 END) as approved
+        from t_group_order
+        where physical_type =  #{physicalType} and del_flag = 0
+    </select>
+    <!--查询订单待审批与已审批数量(主治医师、技术负责人)-->
+    <select id="getTGroupOrderNumFinishAndByCreateId" resultType="com.scmt.healthy.entity.TGroupOrder">
+        select
+            SUM(CASE WHEN  audit_state = '1' or  audit_state = '3' THEN 1 ELSE 0 END) as waitApprove
+            ,SUM(CASE WHEN  audit_state = '2' or audit_state = '4' THEN 1 ELSE 0 END) as approved
+        from t_group_order
+        where physical_type =  #{physicalType} and del_flag = 0
+    </select>
+
+    <!--查询订单待审批与已审批数量(体检中心主任、技术负责人)-->
+    <select id="getTGroupOrderNumAndFinish" resultType="com.scmt.healthy.entity.TGroupOrder">
+        select
+            SUM(CASE WHEN  audit_state = '2' or  audit_state = '3' THEN 1 ELSE 0 END) as waitApprove
+            ,SUM(CASE WHEN  audit_state = '4' THEN 1 ELSE 0 END) as approved
+        from t_group_order
+        where physical_type =  #{physicalType} and del_flag = 0
+    </select>
 
 
     <!--根据团检订单id 查询信息，同时关联公司信息-->
@@ -109,4 +141,7 @@
         SELECT `name`,id FROM t_combo  WHERE id = (SELECT combo_id from t_order_group WHERE id = #{groupId})
     </select>
 
+    <select id="getLastGroupOrderByOrderDateAndCheckOrgId" resultType="com.scmt.healthy.entity.TGroupOrder">
+        SELECT id,order_code FROM t_group_order WHERE DAY ( create_time ) = DAY (NOW()) ORDER BY create_time DESC LIMIT 1
+    </select>
 </mapper>

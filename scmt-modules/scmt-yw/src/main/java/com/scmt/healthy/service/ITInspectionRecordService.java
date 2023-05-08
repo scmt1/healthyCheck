@@ -34,4 +34,6 @@ public interface ITInspectionRecordService extends IService<TInspectionRecord> {
 	 * @param personId 人员id
 	 */
 	public TInspectionRecord getByPersonId(String personId) ;
+
+    List<TInspectionRecord> getInspectionRecordList(String[] ids);
 }

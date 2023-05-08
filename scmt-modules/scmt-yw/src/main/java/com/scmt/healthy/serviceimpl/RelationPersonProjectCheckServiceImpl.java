@@ -85,6 +85,11 @@ public class RelationPersonProjectCheckServiceImpl extends ServiceImpl<RelationP
         return relationPersonProjectCheckMapper.getNoRegistProjectData(personId, deparmentIds);
     }
 
+    @Override
+    public List<TOrderGroupItem> getNoRegistProjectDataReview(String personId, List<String> deparmentIds) {
+        return relationPersonProjectCheckMapper.getNoRegistProjectDataReview(personId, deparmentIds);
+    }
+
     /**
      * 功能描述：构建模糊查询
      *

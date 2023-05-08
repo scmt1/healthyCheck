@@ -74,10 +74,10 @@ public class TReviewProjectServiceImpl extends ServiceImpl<TReviewProjectMapper,
         if (tReviewProject != null) {
             queryWrapper = LikeAllField(tReviewProject, searchVo);
         }
-        if((tReviewProject.getDept()!=null && tReviewProject.getDept().trim().length()>0) || (tReviewProject.getTestNum()!=null && tReviewProject.getTestNum().trim().length()>0)){
-            return tReviewProjectMapper.getTGroupPersonReviewerAndDept(queryWrapper, pageData,tReviewProject.getDept(),tReviewProject.getTestNum());
+        if((tReviewProject.getDept()!=null && tReviewProject.getDept().trim().length()>0) || (tReviewProject.getTestNum()!=null && tReviewProject.getTestNum().trim().length()>0) || (tReviewProject.getIdCard()!=null && tReviewProject.getIdCard().trim().length()>0)){
+            return tReviewProjectMapper.getTGroupPersonReviewerAndDept(queryWrapper, pageData,tReviewProject.getDept(),tReviewProject.getTestNum(),tReviewProject.getIdCard());
         }else{
-            queryWrapper.groupBy("t_review_project.person_id");
+//            queryWrapper.groupBy("t_review_project.person_id");
             return tReviewProjectMapper.getTGroupPersonReviewer(queryWrapper, pageData);
         }
     }
@@ -105,6 +105,11 @@ public class TReviewProjectServiceImpl extends ServiceImpl<TReviewProjectMapper,
     @Override
     public List<TGroupPerson> queryReviewPersonData(String orderId) {
         return tReviewProjectMapper.queryReviewPersonData(orderId);
+    }
+
+    @Override
+    public List<TGroupPerson> queryReviewResultData(String orderId) {
+        return tReviewProjectMapper.queryReviewResultData(orderId);
     }
 
     @Override

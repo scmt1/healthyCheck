@@ -50,6 +50,15 @@ public interface ITDepartItemResultService extends IService<TDepartItemResult> {
     public IPage<TDepartItemResult> querySummaryResultListByPage(TDepartItemResult  tDepartItemResult, SearchVo searchVo, PageVo pageVo);
 
     /**
+     * 功能描述：实现分页查询
+     * @param tDepartItemResult 需要模糊查询的信息
+     * @param searchVo 排序参数
+     * @param pageVo 分页参数
+     * @return 返回获取结果
+     */
+    public IPage<TDepartItemResult> querySummaryResultListReviewByPage(TDepartItemResult  tDepartItemResult, SearchVo searchVo, PageVo pageVo);
+
+    /**
      * 功能描述：查询基础项目检查结果异常数据
      * @param tDepartItemResult
      * @return 返回获取结果

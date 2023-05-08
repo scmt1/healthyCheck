@@ -13,6 +13,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import com.scmt.healthy.entity.TDepartItemResult;
 import com.scmt.healthy.entity.TDepartResult;
+import com.scmt.healthy.entity.TGroupPerson;
 import com.scmt.healthy.entity.TReviewRecord;
 import com.scmt.healthy.mapper.TDepartItemResultMapper;
 import com.scmt.healthy.service.ITDepartItemResultService;
@@ -77,6 +78,27 @@ public class TDepartItemResultServiceImpl extends ServiceImpl<TDepartItemResultM
     }
 
     @Override
+    public IPage<TDepartItemResult> querySummaryResultListReviewByPage(TDepartItemResult tDepartItemResult, SearchVo searchVo, PageVo pageVo) {
+        int page = 1;
+        int limit = 10;
+        if (pageVo != null) {
+            if (pageVo.getPageNumber() != 0) {
+                page = pageVo.getPageNumber();
+            }
+            if (pageVo.getPageSize() != 0) {
+                limit = pageVo.getPageSize();
+            }
+        }
+        Page<TDepartItemResult> pageData = new Page<>(page, limit);
+        QueryWrapper<TDepartItemResult> queryWrapper = new QueryWrapper<>();
+        if (tDepartItemResult != null) {
+            queryWrapper = LikeAllFeild1(tDepartItemResult, searchVo);
+        }
+        IPage<TDepartItemResult> result = tDepartItemResultMapper.querySummaryResultListReview(queryWrapper,pageData);
+        return result;
+    }
+
+    @Override
     public void download(TDepartItemResult tDepartItemResult, HttpServletResponse response) {
         List<Map<String, Object>> mapList = new ArrayList<>();
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -118,6 +140,7 @@ public class TDepartItemResultServiceImpl extends ServiceImpl<TDepartItemResultM
     public List<TDepartItemResult> getAllListByPersonId(String personId) {
         return tDepartItemResultMapper.getAllListByPersonId(personId);
     }
+
 
     /**
      * 功能描述：构建模糊查询
@@ -205,9 +228,14 @@ public class TDepartItemResultServiceImpl extends ServiceImpl<TDepartItemResultM
         QueryWrapper<TDepartItemResult> queryWrapper = new QueryWrapper<>();
         if (StringUtils.isNotBlank(tDepartItemResult.getArrow())) {
             if(tDepartItemResult.getArrow().equals("正常")){
-                queryWrapper.and(i -> i.eq("r.arrow", '-'));
+//                queryWrapper.and(i -> i.eq("r.arrow", '-'));
+                queryWrapper.and(i -> i.eq("r.crisis_degree", "正常").or().eq("r.crisis_degree","-").or().eq("r.positive","0"));
             }else{
-                queryWrapper.and(i -> i.ne("r.arrow", "-").or().eq("r.result", "阳性"));
+//                queryWrapper.and(i -> i.ne("r.arrow", "-").or().eq("r.result", "阳性"));
+//                queryWrapper.and(i -> i.ne("r.arrow", "正常"));
+                queryWrapper.and(i -> i.ne("r.crisis_degree", "正常"));
+                queryWrapper.and(i -> i.ne("r.crisis_degree", "-"));
+                queryWrapper.and(i -> i.ne("r.positive", "0"));
             }
         }
         if (StringUtils.isNotBlank(tDepartItemResult.getOfficeId())) {

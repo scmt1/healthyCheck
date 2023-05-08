@@ -33,6 +33,14 @@ public interface TGroupOrderMapper extends BaseMapper<TGroupOrder> {
 
     TGroupOrder getTGroupOrderNum(@Param("auditUserId") String auditUserId,@Param("physicalType") String physicalType);
 
+    TGroupOrder getTGroupOrderNumAndByCreateId(@Param("auditUserId") String auditUserId,@Param("physicalType") String physicalType);
+
+    TGroupOrder getTGroupOrderNumAll(@Param("auditUserId") String auditUserId,@Param("physicalType") String physicalType);
+
+    TGroupOrder getTGroupOrderNumFinishAndByCreateId(@Param("auditUserId") String auditUserId,@Param("physicalType") String physicalType);
+
+    TGroupOrder getTGroupOrderNumAndFinish(@Param("auditUserId") String auditUserId,@Param("physicalType") String physicalType);
+
     TGroupOrder getTGroupOrderNumFinish(@Param("auditUserId") String auditUserId,@Param("physicalType") String physicalType);
 
     Map<String, Object> getTGroupOrderByIdWithLink(String id);
@@ -40,5 +48,12 @@ public interface TGroupOrderMapper extends BaseMapper<TGroupOrder> {
     IPage<TGroupOrder> queryApproveTGroupOrderList(@Param(Constants.WRAPPER) QueryWrapper<TGroupOrder> queryWrapper, @Param("page") Page page);
 
     Map<String,Object> getComNameByGroupId(String groupId);
+
+
+    /**
+     * 获取当天最新的订单信息
+     * @return
+     */
+    TGroupOrder getLastGroupOrderByOrderDateAndCheckOrgId();
 
 }

@@ -3,7 +3,15 @@ package com.scmt.core.utis;
 import cn.hutool.core.codec.Base64;
 import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.util.IdUtil;
+import com.scmt.core.common.exception.ScmtException;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.util.IOUtils;
+import org.apache.poi.xssf.usermodel.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import javax.activation.MimetypesFileTypeMap;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.security.MessageDigest;
 import java.text.DecimalFormat;
@@ -12,15 +20,6 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import javax.activation.MimetypesFileTypeMap;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import com.scmt.core.common.exception.ScmtException;
-import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.util.IOUtils;
-import org.apache.poi.xssf.usermodel.*;
-import org.springframework.web.multipart.MultipartFile;
 
 public class FileUtil extends cn.hutool.core.io.FileUtil {
     private static final int GB = 1073741824;
@@ -363,4 +362,7 @@ public class FileUtil extends cn.hutool.core.io.FileUtil {
         style.setVerticalAlignment(VerticalAlignment.CENTER);
         return style;
     }
+
+
+
 }

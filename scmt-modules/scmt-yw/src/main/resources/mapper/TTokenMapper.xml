@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scmt.healthy.mapper.TTokenMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.scmt.healthy.entity.TEmploymentToken">
+        <id column="id" property="id" />
+        <result column="token" property="token" />
+        <result column="create_time" property="createTime" />
+        <result column="create_id" property="createId" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, token, create_time, create_id
+    </sql>
+
+</mapper>

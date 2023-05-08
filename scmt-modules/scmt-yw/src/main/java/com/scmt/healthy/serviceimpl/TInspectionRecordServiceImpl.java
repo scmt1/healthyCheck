@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
+import com.scmt.healthy.entity.TCertificateManage;
 import com.scmt.healthy.entity.TInspectionRecord;
 import com.scmt.healthy.service.ITInspectionRecordService;
 import com.scmt.core.common.vo.PageVo;
@@ -67,6 +68,14 @@ public class TInspectionRecordServiceImpl extends ServiceImpl<TInspectionRecordM
 	@Override
 	public TInspectionRecord getByPersonId(String personId) {
 		return tInspectionRecordMapper.getByPersonId(personId);
+	}
+
+	@Override
+	public List<TInspectionRecord> getInspectionRecordList(String[] ids) {
+		QueryWrapper<TInspectionRecord> queryWrapper = new QueryWrapper<>();
+		queryWrapper.in("t_inspection_record.person_id",ids);
+		List<TInspectionRecord> byPersonIdList = tInspectionRecordMapper.getInspectionRecordList(queryWrapper);
+		return byPersonIdList;
 	}
 
 	/**

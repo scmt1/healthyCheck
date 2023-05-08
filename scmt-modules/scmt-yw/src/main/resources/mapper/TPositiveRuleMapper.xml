@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scmt.healthy.mapper.TPositiveRuleMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.scmt.healthy.entity.TPositiveRule">
+        <id column="id" property="id" />
+        <result column="project_name" property="projectName" />
+        <result column="type" property="type" />
+        <result column="regular_value" property="regularValue" />
+        <result column="positive_results_id" property="positiveResultsId" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, project_name, type, regular_value, positive_results_id
+    </sql>
+    <select id="queryBasicUnitListByArchiveId" resultType="com.scmt.healthy.entity.TPositiveRule">
+        select * from t_positive_rule where positive_results_id=#{id}
+    </select>
+
+</mapper>

@@ -16,13 +16,18 @@ import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.TypeReference;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.deepoove.poi.data.TextRenderData;
+import com.deepoove.poi.data.style.Style;
 import com.scmt.core.common.utils.IpInfoUtil;
+import com.scmt.healthy.common.SocketConfig;
 import com.scmt.healthy.entity.*;
+import com.scmt.healthy.reporting.Reporting;
 import com.scmt.healthy.service.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.scmt.healthy.serviceimpl.TdTjBadrsnsServiceImpl;
 import com.scmt.healthy.utils.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -91,8 +96,26 @@ public class TTemplateController {
 
 	@Autowired
 	private ITDepartResultService tDepartResultService;
+	@Autowired
+	private TInterrogationService interrogationService;
 	private File file;
 
+	@Autowired
+	private TTestRecordService tTestRecordService;
+
+	@Autowired
+	private ITReviewPersonService itReviewPersonService;
+
+	@Autowired
+	private ITPositivePersonService tPositivePersonService;
+
+	@Autowired
+	private TdTjBadrsnsServiceImpl tdTjBadrsnsService;
+	/**
+	 * socket配置
+	 */
+	@Autowired
+	public SocketConfig socketConfig;
 
 	/**
 	 * 功能描述：新增模板信息数据
@@ -449,6 +472,11 @@ public class TTemplateController {
 			TGroupOrder orderData = itGroupOrderService.getOne(tGroupOrderQueryWrapper);
 			//单位信息查询
 			TGroupUnit unitData = tGroupUnitService.getById(orderData.getGroupUnitId());
+			//单位检测信息查询
+			TTestRecord tTestRecord = new TTestRecord();
+			tTestRecord.setUnitId(unitData.getId());
+			SearchVo searchVo = new SearchVo();
+			List<TTestRecord> tTestRecords = tTestRecordService.queryTTestRecordList(tTestRecord,searchVo);
 			//人员信息查询
 			QueryWrapper<TGroupPerson> tGroupPersonQueryWrapper = new QueryWrapper<>();
 			tGroupPersonQueryWrapper.eq("order_id",tGroupOrder.getId());
@@ -463,6 +491,7 @@ public class TTemplateController {
 				QueryWrapper<TOrderGroupItem> tOrderGroupItemQueryWrapper = new QueryWrapper<>();
 				tOrderGroupItemQueryWrapper.eq("group_id",tOrderGroup.getId());
 				tOrderGroupItemQueryWrapper.eq("del_flag",0);
+				tOrderGroupItemQueryWrapper.orderByAsc("order_num").orderByAsc("name");
 				List<TOrderGroupItem> tOrderGroupItems = tOrderGroupItemService.list(tOrderGroupItemQueryWrapper);
 				String projects = "";
 				Integer prices = 0;
@@ -484,12 +513,14 @@ public class TTemplateController {
 			stringObjectHashMap.put("unitData", unitData);
 			stringObjectHashMap.put("personData", personData);
 			stringObjectHashMap.put("goods", goods);
+			stringObjectHashMap.put("tTestRecords", tTestRecords);
 			return ResultUtil.data(stringObjectHashMap);
 		} catch (Exception e) {
 			e.printStackTrace();
 			return ResultUtil.error("查询异常:" + e.getMessage());
 		}
 	}
+
 
 	/**
 	 * 功能描述：预览模板信息数据(健康证)
@@ -1134,6 +1165,7 @@ public class TTemplateController {
 			}
 			//第一步查询人员信息
 			List <Map<String, Object>> mapPersons = tGroupPersonService.getGroupPersonInfoByIds(Arrays.asList(ids));
+
 			if(mapPersons==null ||mapPersons.size()==0){
 				return ResultUtil.error("查询体检报告结果数据异常:查询人员信息失败" );
 			}
@@ -1150,6 +1182,18 @@ public class TTemplateController {
 			List<TOrderGroup> orderGroup = orderGroupService.listByIds (groupIds);
 			//查询组合项检查结果
 			List<TDepartResult> departResults = tTemplateService.getDepartResultListByPersonIds( Arrays.asList(ids),groupIds);
+			for(TDepartResult tDepartResult : departResults){
+				if(tDepartResult!=null && tDepartResult.getCheckSign()!=null){
+					//字节转字符串
+					byte[] blob = (byte[]) tDepartResult.getCheckSign();
+					if(blob!=null){
+						String avatarNow = new String(blob);
+						if(avatarNow.indexOf("/dcm") > -1){
+							tDepartResult.setCheckSignPath(avatarNow);
+						}
+					}
+				}
+			}
 			//查询基础项目检查结果
 			List<TDepartItemResult> departItemResults = tTemplateService.getDepartItemResultListByPersonIds( Arrays.asList(ids),groupIds);
 			//症状查询
@@ -1166,6 +1210,18 @@ public class TTemplateController {
 			queryWrapperInspectionRecord.lambda().and(i -> i.in(TInspectionRecord::getPersonId, Arrays.asList(ids)));
 			queryWrapperInspectionRecord.lambda().and(i -> i.eq(TInspectionRecord::getDelFlag, 0));
 			List<TInspectionRecord> inspectionRecord = tInspectionRecordService.list(queryWrapperInspectionRecord);
+			for(TInspectionRecord tInspectionRecord : inspectionRecord){
+				if(tInspectionRecord!=null && tInspectionRecord.getInspectionAutograph()!=null){
+					//字节转字符串
+					byte[] blob = (byte[]) tInspectionRecord.getInspectionAutograph();
+					if(blob!=null){
+						String avatarNow = new String(blob);
+						if(avatarNow.indexOf("/dcm") > -1){
+							tInspectionRecord.setInspectionAutograph(avatarNow);
+						}
+					}
+				}
+			}
 			//查询复检项目
 			QueryWrapper<TReviewProject> queryWrapperReviewRecord = new QueryWrapper<>();
 			queryWrapperReviewRecord.lambda().and(i -> i.in(TReviewProject::getPersonId, Arrays.asList(ids)));
@@ -1189,17 +1245,163 @@ public class TTemplateController {
 			queryWrapperSymptom.and(i -> i.in("t_symptom.person_id", Arrays.asList(ids)));
 			List<TSymptom> symptom =tSymptomService.list(queryWrapperSymptom);
 
+			//问诊查询
+			QueryWrapper<TInterrogation> tInterrogationQueryWrapper = new QueryWrapper<>();
+			tInterrogationQueryWrapper.eq("del_flag",0);
+			tInterrogationQueryWrapper.in("person_id",ids);
+			tInterrogationQueryWrapper.orderByDesc("create_time");
+			List<TInterrogation> tInterrogationList = interrogationService.list(tInterrogationQueryWrapper);
+
+			//查询阳性结果(目前仅健康和从业)
+			QueryWrapper<TPositivePerson> tPositivePersonQueryWrapper = new QueryWrapper<>();
+			tPositivePersonQueryWrapper.in("person_id",ids);
+			tPositivePersonQueryWrapper.orderByAsc("order_num");
+			List<TPositivePerson> tPositivePeople = tPositivePersonService.list(tPositivePersonQueryWrapper);
+
+			//查询危害因素结论（目前仅职业和健康）
+//			QueryWrapper<TdTjBadrsns> tdTjBadrsnsQueryWrapper = new QueryWrapper<>();
+//			tdTjBadrsnsQueryWrapper.in("FK_BHK_ID",ids);
+//			tdTjBadrsnsQueryWrapper.orderByAsc("EXAM_CONCLUSION_CODE");
+//			List<TdTjBadrsns> tdTjBadrsns = tdTjBadrsnsService.list(tdTjBadrsnsQueryWrapper);
+			List<TdTjBadrsns> tdTjBadrsns = tdTjBadrsnsService.selectListByIds(Arrays.asList(ids));
+
 			for (Map<String, Object> mapPerson:mapPersons) {
 				if(mapPerson!=null  && mapPerson.size()>0 && mapPerson.containsKey("id") ){
+
+					if(mapPerson.get("avatar")!=null){
+						//字节转字符串
+						byte[] blob = (byte[]) mapPerson.get("avatar");
+						if(blob!=null){
+							String avatarNow = new String(blob);
+							if(avatarNow.indexOf("/dcm") > -1){
+								mapPerson.put("avatar",avatarNow);
+							}
+						}
+					}
 					Map<String, Object> result = new HashMap<>();
 					//人员id
 //					String personId = mapPersons.get(0).get("id").toString();
 					String personId = mapPerson.get("id").toString();
+					//获取人员问诊信息
+					TInterrogation tInterrogation = tInterrogationList.stream().filter(ii -> personId.contains(ii.getPersonId())).findFirst().orElse(null);
+					if(tInterrogation!=null){
+						mapPerson.put("work_year",tInterrogation.getWorkYear());
+						mapPerson.put("work_month",tInterrogation.getWorkMonth());
+						mapPerson.put("exposure_work_year",tInterrogation.getExposureWorkYear());
+						mapPerson.put("exposure_work_month",tInterrogation.getExposureWorkMonth());
+						mapPerson.put("exposure_start_date",tInterrogation.getExposureStartDate());
+						mapPerson.put("nation",tInterrogation.getNation());
+						mapPerson.put("check_num",tInterrogation.getCheckNum());
+						mapPerson.put("disease_name",tInterrogation.getDiseaseName());
+						mapPerson.put("is_cured",tInterrogation.getIsCured());
+						mapPerson.put("menarche",tInterrogation.getMenarche());
+						mapPerson.put("period",tInterrogation.getPeriod());
+						mapPerson.put("cycle",tInterrogation.getCycle());
+						mapPerson.put("last_menstruation",tInterrogation.getLastMenstruation());
+						mapPerson.put("existing_children",tInterrogation.getExistingChildren());
+						mapPerson.put("abortion",tInterrogation.getAbortion());
+						mapPerson.put("premature",tInterrogation.getPremature());
+						mapPerson.put("death",tInterrogation.getDeath());
+						mapPerson.put("abnormal_fetus",tInterrogation.getAbnormalFetus());
+						mapPerson.put("smoke_state",tInterrogation.getSmokeState());
+						mapPerson.put("package_every_day",tInterrogation.getPackageEveryDay());
+						mapPerson.put("smoke_year",tInterrogation.getSmokeYear());
+						mapPerson.put("drink_state",tInterrogation.getDrinkState());
+						mapPerson.put("ml_every_day",tInterrogation.getMlEveryDay());
+						mapPerson.put("drink_year",tInterrogation.getDrinkYear());
+						mapPerson.put("other_info",tInterrogation.getOtherInfo());
+						mapPerson.put("symptom",tInterrogation.getSymptom());
+						mapPerson.put("education",tInterrogation.getEducation());
+						mapPerson.put("family_address",tInterrogation.getFamilyAddress());
+						mapPerson.put("menstrual_history",tInterrogation.getMenstrualHistory());
+						mapPerson.put("menstrual_info",tInterrogation.getMenstrualInfo());
+						mapPerson.put("allergies",tInterrogation.getAllergies());
+						mapPerson.put("allergies_info",tInterrogation.getAllergiesInfo());
+						mapPerson.put("birthplace_code",tInterrogation.getBirthplaceCode());
+						mapPerson.put("birthplace_name",tInterrogation.getBirthplaceName());
+						mapPerson.put("family_history",tInterrogation.getFamilyHistory());
+						mapPerson.put("past_medical_history_other_info",tInterrogation.getPastMedicalHistoryOtherInfo());
+						mapPerson.put("wz_check_doctor",tInterrogation.getWzCheckDoctor());
+						mapPerson.put("wz_check_time",tInterrogation.getWzCheckTime());
+						mapPerson.put("wz_check_autograph",tInterrogation.getWzCheckAutograph());
+
+						mapPerson.put("marriage_date",tInterrogation.getMarriageDate());//婚姻史-结婚日期
+						mapPerson.put("spouse_radiation_situation",tInterrogation.getSpouseRadiationSituation());//婚姻史-配偶接触放射线情况
+						mapPerson.put("spouse_health_situation",tInterrogation.getSpouseHealthSituation());//婚姻史-配偶接触放射线情况
+						mapPerson.put("pregnancy_count",tInterrogation.getPregnancyCount());//孕次
+						mapPerson.put("live_birth",tInterrogation.getLiveBirth());//活产
+						mapPerson.put("abortion_small",tInterrogation.getAbortionSmall());//自然流产
+						mapPerson.put("multiparous",tInterrogation.getMultiparous());//多胎
+						mapPerson.put("ectopic_pregnancy",tInterrogation.getEctopicPregnancy());//异位妊娠
+						mapPerson.put("boys",tInterrogation.getBoys());//现有男孩
+						mapPerson.put("boys_birth",tInterrogation.getBoysBirth());//现有男孩-出生日期
+						mapPerson.put("girls",tInterrogation.getGirls());//现有女孩
+						mapPerson.put("girls_birth",tInterrogation.getGirlsBirth());//现有女孩-出生日期
+						mapPerson.put("infertility_reason",tInterrogation.getInfertilityReason());//不孕不育原因
+						mapPerson.put("childrens_health",tInterrogation.getChildrensHealth());//子女健康情况
+
+						mapPerson.put("quit_somking",tInterrogation.getQuitSomking());//戒烟年数
+						mapPerson.put("job",tInterrogation.getJob());//职务/职称
+						mapPerson.put("zip_code",tInterrogation.getZipCode());//邮政编码
+					}
+					if(mapPerson.get("wz_check_autograph")!=null){
+						//字节转字符串
+						byte[] blob = (byte[]) mapPerson.get("wz_check_autograph");
+						if(blob!=null){
+							String avatarNow = new String(blob);
+							if(avatarNow.indexOf("/dcm") > -1){
+								mapPerson.put("wz_check_autograph",avatarNow);
+							}
+						}
+					}
+
 					//订单Id
 					String groupId = mapPersons.get(0).get("group_id").toString();
 					result.put("orderGroup", orderGroup.stream().filter(ii -> groupId.contains(ii.getId())).findFirst().orElse(null));
 					result.put("departResults", departResults.stream().filter(ii -> personId.contains(ii.getPersonId())).collect(Collectors.toList()));
 					result.put("departItemResults", departItemResults.stream().filter(ii -> personId.contains(ii.getPersonId())).collect(Collectors.toList()));
+					if(mapPerson.get("physical_type")!=null && (mapPerson.get("physical_type").toString().equals("健康体检") || mapPerson.get("physical_type").toString().equals("从业体检"))){
+						mapPerson.put("tPositivePeople", tPositivePeople.stream().filter(ii -> personId.contains(ii.getPersonId())).collect(Collectors.toList()));
+					}
+					if(mapPerson.get("hazard_factors_text")!=null && mapPerson.get("hazard_factors")!=null && mapPerson.get("physical_type")!=null && (mapPerson.get("physical_type").toString().equals("职业体检") || mapPerson.get("physical_type").toString().equals("放射体检"))){
+
+						String hazardFactorsNow = mapPerson.get("hazard_factors").toString();
+						String hazardFactorsTextNow = mapPerson.get("hazard_factors_text").toString();
+						String[] hazardFactorsNowArr = new String[0];
+						String[] hazardFactorsTextNowArr = new String[0];
+						if(StringUtils.isNotBlank(hazardFactorsNow)){
+							hazardFactorsNowArr = hazardFactorsNow.split("\\|");
+						}
+						if(StringUtils.isNotBlank(hazardFactorsTextNow)){
+							if(hazardFactorsTextNow.indexOf("\\|") > -1){
+								hazardFactorsTextNowArr = hazardFactorsTextNow.split("\\|");
+							}else if(hazardFactorsNowArr!=null && hazardFactorsNowArr.length>0){
+								hazardFactorsTextNowArr = (hazardFactorsTextNow.replaceAll("\\|","、")).split("、");
+							}else{
+								hazardFactorsTextNowArr =hazardFactorsTextNow.split("\\|");
+							}
+						}
+						if(tdTjBadrsns!=null && tdTjBadrsns.size()>0){
+							List<TdTjBadrsns> tdTjBadrsnsList = tdTjBadrsns.stream().filter(ii -> personId.contains(ii.getFkBhkId())).collect(Collectors.toList());
+							List<TdTjBadrsns> tdTjBadrsnsListNow = new ArrayList<>();
+							for(TdTjBadrsns tdTjBadrsnsOne : tdTjBadrsnsList){
+								if(tdTjBadrsnsOne!=null && StringUtils.isNotBlank(tdTjBadrsnsOne.getBadrsnCode()) && hazardFactorsNowArr!=null && hazardFactorsNowArr.length>0){
+									int num = 0;
+									for(String s : hazardFactorsNowArr){
+										if(StringUtils.isNotBlank(s) && tdTjBadrsnsOne.getBadrsnCode().equals(s) && hazardFactorsTextNowArr!=null && hazardFactorsTextNowArr.length>0 && hazardFactorsTextNowArr[num]!=null && StringUtils.isNotBlank(hazardFactorsTextNowArr[num])){
+											tdTjBadrsnsOne.setTypeName(hazardFactorsTextNowArr[num]);
+											tdTjBadrsnsListNow.add(tdTjBadrsnsOne);
+										}
+										num ++;
+									}
+								}
+							}
+							mapPerson.put("tdTjBadrsns", tdTjBadrsnsListNow);
+						}
+						else{
+							mapPerson.put("tdTjBadrsns", new ArrayList<>());
+						}
+					}
 					mapPerson.put("symptom",symptom.stream().filter(ii -> personId.contains(ii.getPersonId())).collect(Collectors.toList()));
 					mapPerson.put("careerHistory",careerHistory.stream().filter(ii -> personId.contains(ii.getPersonId())).collect(Collectors.toList()));
 					mapPerson.put("reviewProjectsList",reviewProjectsList.stream().filter(ii -> personId.contains(ii.getPersonId())).collect(Collectors.toList()));
@@ -1210,6 +1412,309 @@ public class TTemplateController {
 					String testNum = mapPerson.get("test_num").toString();
 					String testNumCode = (GoogleTestNumBarCodeUtils.generatorBase64Barcode(testNum, testNum));
 					mapPerson.put("testNumCode",testNumCode.split(",")[1]);
+					results.add(result);
+				}
+			}
+
+			return ResultUtil.data(results);
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			return ResultUtil.error("查询体检报告结果数据异常:" + e.getMessage());
+		}
+	}
+
+	@ApiOperation("根据主键来获取模板信息数据")
+	@PostMapping("generateReportByPersonIdsTypeStatus")
+	public Result<Object> generateReportByPersonIdsTypeStatus(@RequestBody String[] ids) {
+		try {
+			List<Map<String, Object>>results  = new ArrayList<>();
+			if(ids == null || ids.length == 0){
+				return ResultUtil.error("查询体检报告结果数据异常:人员Id为空" );
+			}
+			List<String> personIds = new ArrayList<>() ;
+			//是否查询第一次
+			if(socketConfig.getInitialMerger()){
+				personIds = tTemplateService.getPersonIdsByReviewPersonIds( Arrays.asList(ids));
+			}
+			else{
+				personIds = Arrays.asList(ids);
+			}
+			List<String> finalPersonIds = personIds;
+
+			//第一步查询人员信息
+			List <Map<String, Object>> mapPersons = tGroupPersonService.getGroupPersonInfoByIdsTypeStatus(Arrays.asList(ids));
+			if(mapPersons==null ||mapPersons.size()==0){
+				return ResultUtil.error("查询体检报告结果数据异常:查询人员信息失败" );
+			}
+			List<String> groupIds = new ArrayList<>();
+			mapPersons.stream().forEach(m -> {
+				if (m.containsKey("group_id")) {
+					//没得才添加
+					if(!groupIds.contains(m.get("group_id").toString())){
+						groupIds.add(m.get("group_id").toString());
+					}
+				}
+			});
+			//查询职业病、目标禁忌症、危害因素（订单）
+			List<TOrderGroup> orderGroup = orderGroupService.listByIds (groupIds);
+			//查询组合项检查结果
+			List<TDepartResult> departResults = new ArrayList<>();
+			//是否查询第一次
+			if(socketConfig.getInitialMerger()){
+				departResults = tTemplateService.getDepartResultListByReviewPersonIds( Arrays.asList(ids),groupIds);
+			}
+			else{
+				departResults = tTemplateService.getDepartResultListByPersonIds( Arrays.asList(ids),groupIds);
+			}
+
+
+			for(TDepartResult tDepartResult : departResults){
+				if(tDepartResult!=null && tDepartResult.getCheckSign()!=null){
+					//字节转字符串
+					byte[] blob = (byte[]) tDepartResult.getCheckSign();
+					if(blob!=null){
+						String avatarNow = new String(blob);
+						if(avatarNow.indexOf("/dcm") > -1){
+							tDepartResult.setCheckSignPath(avatarNow);
+						}
+					}
+				}
+			}
+			//查询基础项目检查结果
+			List<TDepartItemResult> departItemResults = new ArrayList<>();
+			//是否查询第一次
+			if(socketConfig.getInitialMerger()){
+				departItemResults = tTemplateService.getDepartItemResultListByReviewPersonIds( Arrays.asList(ids),groupIds);
+			}
+			else{
+				departItemResults = tTemplateService.getDepartItemResultListByPersonIds( Arrays.asList(ids),groupIds);
+			}
+
+			//查询弃检项目
+			QueryWrapper<RelationPersonProjectCheck> queryWrapperRelationPersonProjectCheck = new QueryWrapper<>();
+			queryWrapperRelationPersonProjectCheck.and(i -> i.in("relation_person_project_check.person_id", Arrays.asList(ids)));
+			queryWrapperRelationPersonProjectCheck.and(i -> i.eq("relation_person_project_check.state", 2));
+			List<RelationPersonProjectCheck> personProjectCheck = relationPersonProjectCheckService.list(queryWrapperRelationPersonProjectCheck);
+			//查询总检结果
+			QueryWrapper<TInspectionRecord> queryWrapperInspectionRecord = new QueryWrapper<>();
+			queryWrapperInspectionRecord.lambda().and(i -> i.in(TInspectionRecord::getPersonId, finalPersonIds));
+			queryWrapperInspectionRecord.lambda().and(i -> i.eq(TInspectionRecord::getDelFlag, 0));
+			List<TInspectionRecord> inspectionRecord = tInspectionRecordService.list(queryWrapperInspectionRecord);
+			for(TInspectionRecord tInspectionRecord : inspectionRecord){
+				if(tInspectionRecord!=null && tInspectionRecord.getInspectionAutograph()!=null){
+					//字节转字符串
+					byte[] blob = (byte[]) tInspectionRecord.getInspectionAutograph();
+					if(blob!=null){
+						String avatarNow = new String(blob);
+						if(avatarNow.indexOf("/dcm") > -1){
+							tInspectionRecord.setInspectionAutograph(avatarNow);
+						}
+					}
+				}
+			}
+
+
+			//查询复检项目
+			QueryWrapper<TReviewProject> queryWrapperReviewRecord = new QueryWrapper<>();
+			queryWrapperReviewRecord.lambda().and(i -> i.in(TReviewProject::getPersonId, Arrays.asList(ids)));
+			queryWrapperReviewRecord.lambda().and(i -> i.eq(TReviewProject::getDelFlag, 0));
+//			queryWrapperReviewRecord.lambda().and(i -> i.eq(TReviewProject::getIsPass, 1));
+			List<TReviewProject> reviewProjectsList =tReviewProjectService.list(queryWrapperReviewRecord);
+			/*QueryWrapper<TDepartResult> queryWrapperReviewRecord = new QueryWrapper<>();
+			queryWrapperReviewRecord.lambda().and(i -> i.in(TDepartResult::getPersonId, Arrays.asList(ids)));
+			queryWrapperReviewRecord.lambda().and(i -> i.eq(TDepartResult::getDelFlag, 0));
+			queryWrapperReviewRecord.lambda().and(i -> i.like(TDepartResult::getGroupItemName, "(复)"));
+			queryWrapperReviewRecord.orderByAsc("check_date");
+			List<TDepartResult> reviewProjectsList = tDepartResultService.list(queryWrapperReviewRecord);*/
+
+			//获取第一次体检人员的id
+			QueryWrapper<TReviewPerson> tReviewPersonQueryWrapper = new QueryWrapper<>();
+			tReviewPersonQueryWrapper.eq("del_flag",0);
+			tReviewPersonQueryWrapper.in("id",ids);
+			tReviewPersonQueryWrapper.select("first_person_id");
+			tReviewPersonQueryWrapper.groupBy("first_person_id");
+			List<TReviewPerson> tReviewPersonList = itReviewPersonService.list(tReviewPersonQueryWrapper);
+			List<String> stringList = tReviewPersonList.stream().map(TReviewPerson::getFirstPersonId).collect(Collectors.toList());
+			//问诊查询
+			QueryWrapper<TInterrogation> tInterrogationQueryWrapper = new QueryWrapper<>();
+			tInterrogationQueryWrapper.eq("del_flag",0);
+//			tInterrogationQueryWrapper.in("person_id",ids);
+			tInterrogationQueryWrapper.in("person_id",stringList);
+			tInterrogationQueryWrapper.orderByDesc("create_time");
+			List<TInterrogation> tInterrogationList = interrogationService.list(tInterrogationQueryWrapper);
+
+			//危害因素结论
+			List<TdTjBadrsns> tdTjBadrsns = tdTjBadrsnsService.selectListByIds(finalPersonIds);
+
+			for (Map<String, Object> mapPerson:mapPersons) {
+				if(mapPerson!=null  && mapPerson.size()>0 && mapPerson.containsKey("id") ){
+
+					if(mapPerson.get("avatar")!=null){
+						//字节转字符串
+						byte[] blob = (byte[]) mapPerson.get("avatar");
+						if(blob!=null){
+							String avatarNow = new String(blob);
+							if(avatarNow.indexOf("/dcm") > -1){
+								mapPerson.put("avatar",avatarNow);
+							}
+						}
+					}
+					Map<String, Object> result = new HashMap<>();
+					//人员id
+//					String personId = mapPersons.get(0).get("id").toString();
+					String personId = mapPerson.get("id").toString();
+					String firstPersonId = mapPerson.get("first_person_id").toString();
+					//获取人员问诊信息
+					TInterrogation tInterrogation = tInterrogationList.stream().filter(ii -> firstPersonId.contains(ii.getPersonId())).findFirst().orElse(null);
+					if(tInterrogation!=null){
+						mapPerson.put("work_year",tInterrogation.getWorkYear());
+						mapPerson.put("work_month",tInterrogation.getWorkMonth());
+						mapPerson.put("exposure_work_year",tInterrogation.getExposureWorkYear());
+						mapPerson.put("exposure_work_month",tInterrogation.getExposureWorkMonth());
+						mapPerson.put("exposure_start_date",tInterrogation.getExposureStartDate());
+						mapPerson.put("nation",tInterrogation.getNation());
+						mapPerson.put("check_num",tInterrogation.getCheckNum());
+						mapPerson.put("disease_name",tInterrogation.getDiseaseName());
+						mapPerson.put("is_cured",tInterrogation.getIsCured());
+						mapPerson.put("menarche",tInterrogation.getMenarche());
+						mapPerson.put("period",tInterrogation.getPeriod());
+						mapPerson.put("cycle",tInterrogation.getCycle());
+						mapPerson.put("last_menstruation",tInterrogation.getLastMenstruation());
+						mapPerson.put("existing_children",tInterrogation.getExistingChildren());
+						mapPerson.put("abortion",tInterrogation.getAbortion());
+						mapPerson.put("premature",tInterrogation.getPremature());
+						mapPerson.put("death",tInterrogation.getDeath());
+						mapPerson.put("abnormal_fetus",tInterrogation.getAbnormalFetus());
+						mapPerson.put("smoke_state",tInterrogation.getSmokeState());
+						mapPerson.put("package_every_day",tInterrogation.getPackageEveryDay());
+						mapPerson.put("smoke_year",tInterrogation.getSmokeYear());
+						mapPerson.put("drink_state",tInterrogation.getDrinkState());
+						mapPerson.put("ml_every_day",tInterrogation.getMlEveryDay());
+						mapPerson.put("drink_year",tInterrogation.getDrinkYear());
+						mapPerson.put("other_info",tInterrogation.getOtherInfo());
+						mapPerson.put("symptom",tInterrogation.getSymptom());
+						mapPerson.put("education",tInterrogation.getEducation());
+						mapPerson.put("family_address",tInterrogation.getFamilyAddress());
+						mapPerson.put("menstrual_history",tInterrogation.getMenstrualHistory());
+						mapPerson.put("menstrual_info",tInterrogation.getMenstrualInfo());
+						mapPerson.put("allergies",tInterrogation.getAllergies());
+						mapPerson.put("allergies_info",tInterrogation.getAllergiesInfo());
+						mapPerson.put("birthplace_code",tInterrogation.getBirthplaceCode());
+						mapPerson.put("birthplace_name",tInterrogation.getBirthplaceName());
+						mapPerson.put("family_history",tInterrogation.getFamilyHistory());
+						mapPerson.put("past_medical_history_other_info",tInterrogation.getPastMedicalHistoryOtherInfo());
+						mapPerson.put("wz_check_doctor",tInterrogation.getWzCheckDoctor());
+						mapPerson.put("wz_check_time",tInterrogation.getWzCheckTime());
+						mapPerson.put("wz_check_autograph",tInterrogation.getWzCheckAutograph());
+
+						mapPerson.put("marriage_date",tInterrogation.getMarriageDate());//婚姻史-结婚日期
+						mapPerson.put("spouse_radiation_situation",tInterrogation.getSpouseRadiationSituation());//婚姻史-配偶接触放射线情况
+						mapPerson.put("spouse_health_situation",tInterrogation.getSpouseHealthSituation());//婚姻史-配偶接触放射线情况
+						mapPerson.put("pregnancy_count",tInterrogation.getPregnancyCount());//孕次
+						mapPerson.put("live_birth",tInterrogation.getLiveBirth());//活产
+						mapPerson.put("abortion_small",tInterrogation.getAbortionSmall());//自然流产
+						mapPerson.put("multiparous",tInterrogation.getMultiparous());//多胎
+						mapPerson.put("ectopic_pregnancy",tInterrogation.getEctopicPregnancy());//异位妊娠
+						mapPerson.put("boys",tInterrogation.getBoys());//现有男孩
+						mapPerson.put("boys_birth",tInterrogation.getBoysBirth());//现有男孩-出生日期
+						mapPerson.put("girls",tInterrogation.getGirls());//现有女孩
+						mapPerson.put("girls_birth",tInterrogation.getGirlsBirth());//现有女孩-出生日期
+						mapPerson.put("infertility_reason",tInterrogation.getInfertilityReason());//不孕不育原因
+						mapPerson.put("childrens_health",tInterrogation.getChildrensHealth());//子女健康情况
+
+						mapPerson.put("quit_somking",tInterrogation.getQuitSomking());//戒烟年数
+						mapPerson.put("job",tInterrogation.getJob());//职务/职称
+						mapPerson.put("zip_code",tInterrogation.getZipCode());//邮政编码
+					}
+					if(mapPerson.get("wz_check_autograph")!=null){
+						//字节转字符串
+						byte[] blob = (byte[]) mapPerson.get("wz_check_autograph");
+						if(blob!=null){
+							String avatarNow = new String(blob);
+							if(avatarNow.indexOf("/dcm") > -1){
+								mapPerson.put("wz_check_autograph",avatarNow);
+							}
+						}
+					}
+
+					//订单Id
+					String groupId = mapPersons.get(0).get("group_id").toString();
+					result.put("orderGroup", orderGroup.stream().filter(ii -> groupId.contains(ii.getId())).findFirst().orElse(null));
+					if(socketConfig.getInitialMerger()){
+						result.put("departResults", departResults.stream().filter(ii -> personId.contains(ii.getPersonId())||firstPersonId.contains(ii.getPersonId())).collect(Collectors.toList()));
+						result.put("departItemResults", departItemResults.stream().filter(ii -> personId.contains(ii.getPersonId())||firstPersonId.contains(ii.getPersonId())).collect(Collectors.toList()));
+						mapPerson.put("inspectionRecordFirst",inspectionRecord.stream().filter(ii -> firstPersonId.contains(ii.getPersonId())).findFirst().orElse(null));
+					}
+					else{
+						result.put("departResults", departResults.stream().filter(ii -> personId.contains(ii.getPersonId())).collect(Collectors.toList()));
+						result.put("departItemResults", departItemResults.stream().filter(ii -> personId.contains(ii.getPersonId())).collect(Collectors.toList()));
+					}
+
+					List<TReviewProject> reviewProjects = reviewProjectsList.stream().filter(ii -> personId.contains(ii.getPersonId())).collect(Collectors.toList());
+					mapPerson.put("reviewProjectsList",reviewProjects);
+					mapPerson.put("personProjectCheck",personProjectCheck.stream().filter(ii -> personId.contains(ii.getPersonId())).collect(Collectors.toList()));
+					mapPerson.put("inspectionRecord",inspectionRecord.stream().filter(ii -> personId.contains(ii.getPersonId())).findFirst().orElse(null));
+					if(mapPerson.get("hazard_factors_text")!=null && mapPerson.get("hazard_factors")!=null && mapPerson.get("physical_type")!=null && (mapPerson.get("physical_type").toString().equals("职业体检") || mapPerson.get("physical_type").toString().equals("放射体检"))){
+
+						String hazardFactorsNow = mapPerson.get("hazard_factors").toString();
+						String hazardFactorsTextNow = mapPerson.get("hazard_factors_text").toString();
+						String[] hazardFactorsNowArr = new String[0];
+						String[] hazardFactorsTextNowArr = new String[0];
+						if(StringUtils.isNotBlank(hazardFactorsNow)){
+							hazardFactorsNowArr = hazardFactorsNow.split("\\|");
+						}
+						if(StringUtils.isNotBlank(hazardFactorsTextNow)){
+							if(hazardFactorsTextNow.indexOf("\\|") > -1){
+								hazardFactorsTextNowArr = hazardFactorsTextNow.split("\\|");
+							}else if(hazardFactorsNowArr!=null && hazardFactorsNowArr.length>0){
+								hazardFactorsTextNowArr = (hazardFactorsTextNow.replaceAll("\\|","、")).split("、");
+							}else{
+								hazardFactorsTextNowArr =hazardFactorsTextNow.split("\\|");
+							}
+						}
+						if(tdTjBadrsns!=null && tdTjBadrsns.size()>0){
+							List<TdTjBadrsns> tdTjBadrsnsList = tdTjBadrsns.stream().filter(ii -> personId.contains(ii.getFkBhkId())).collect(Collectors.toList());
+							List<TdTjBadrsns> tdTjBadrsnsListNow = new ArrayList<>();
+							for(TdTjBadrsns tdTjBadrsnsOne : tdTjBadrsnsList){
+								if(tdTjBadrsnsOne!=null && StringUtils.isNotBlank(tdTjBadrsnsOne.getBadrsnCode()) && hazardFactorsNowArr!=null && hazardFactorsNowArr.length>0){
+									int num = 0;
+									for(String s : hazardFactorsNowArr){
+										if(StringUtils.isNotBlank(s) && tdTjBadrsnsOne.getBadrsnCode().equals(s) && hazardFactorsTextNowArr!=null && hazardFactorsTextNowArr.length>0 && hazardFactorsTextNowArr[num]!=null && StringUtils.isNotBlank(hazardFactorsTextNowArr[num])){
+											tdTjBadrsnsOne.setTypeName(hazardFactorsTextNowArr[num]);
+											tdTjBadrsnsListNow.add(tdTjBadrsnsOne);
+										}
+										num ++;
+									}
+								}
+							}
+							mapPerson.put("tdTjBadrsns", tdTjBadrsnsListNow);
+							if(socketConfig.getInitialMerger()){
+								List<TdTjBadrsns> tdTjBadrsnsListFirst = tdTjBadrsns.stream().filter(ii -> firstPersonId.contains(ii.getFkBhkId())).collect(Collectors.toList());
+								List<TdTjBadrsns> tdTjBadrsnsListNowFirst = new ArrayList<>();
+								for(TdTjBadrsns tdTjBadrsnsOne : tdTjBadrsnsListFirst){
+									if(tdTjBadrsnsOne!=null && StringUtils.isNotBlank(tdTjBadrsnsOne.getBadrsnCode()) && hazardFactorsNowArr!=null && hazardFactorsNowArr.length>0){
+										int num = 0;
+										for(String s : hazardFactorsNowArr){
+											if(StringUtils.isNotBlank(s) && tdTjBadrsnsOne.getBadrsnCode().equals(s) && hazardFactorsTextNowArr!=null && hazardFactorsTextNowArr.length>0 && hazardFactorsTextNowArr[num]!=null && StringUtils.isNotBlank(hazardFactorsTextNowArr[num])){
+												tdTjBadrsnsOne.setTypeName(hazardFactorsTextNowArr[num]);
+												tdTjBadrsnsListNowFirst.add(tdTjBadrsnsOne);
+											}
+											num ++;
+										}
+									}
+								}
+								mapPerson.put("tdTjBadrsnsFirst", tdTjBadrsnsListFirst);
+							}
+						}
+
+
+					}
+					String testNum = mapPerson.get("test_num").toString();
+					String testNumCode = (GoogleTestNumBarCodeUtils.generatorBase64Barcode(testNum, testNum));
+					mapPerson.put("testNumCode",testNumCode.split(",")[1]);
+					mapPerson.put("nowRegistDate",reviewProjects.get(0).getRegistDate());//当前最新一次体检日期
+					result.put("mapPerson",mapPerson);
 					results.add(result);
 				}
 			}
@@ -1246,6 +1751,18 @@ public class TTemplateController {
 			});
 			//查询组合项检查结果
 			List<TDepartResult> departResults = tTemplateService.getDepartResultListByPersonIds( Arrays.asList(ids),groupIds);
+			for(TDepartResult tDepartResult : departResults){
+				if(tDepartResult!=null && tDepartResult.getCheckSign()!=null){
+					//字节转字符串
+					byte[] blob = (byte[]) tDepartResult.getCheckSign();
+					if(blob!=null){
+						String avatarNow = new String(blob);
+						if(avatarNow.indexOf("/dcm") > -1){
+							tDepartResult.setCheckSignPath(avatarNow);
+						}
+					}
+				}
+			}
 			//查询基础项目检查结果
 			List<TDepartItemResult> departItemResults = tTemplateService.getDepartItemResultListByPersonIds( Arrays.asList(ids),groupIds);
 			//查询总检结果
@@ -1260,12 +1777,103 @@ public class TTemplateController {
 			queryWrapperReviewRecord.lambda().and(i -> i.eq(TReviewProject::getDelFlag, 0));
 			List<TReviewProject> reviewProjectsList =tReviewProjectService.list(queryWrapperReviewRecord);
 
+			//问诊查询
+			QueryWrapper<TInterrogation> tInterrogationQueryWrapper = new QueryWrapper<>();
+			tInterrogationQueryWrapper.eq("del_flag",0);
+			tInterrogationQueryWrapper.in("person_id",ids);
+			tInterrogationQueryWrapper.orderByDesc("create_time");
+			List<TInterrogation> tInterrogationList = interrogationService.list(tInterrogationQueryWrapper);
+
 			for (Map<String, Object> mapPerson:mapPersons) {
 				if(mapPerson!=null  && mapPerson.size()>0 && mapPerson.containsKey("id") ){
+					if(mapPerson.get("avatar")!=null){
+						//字节转字符串
+						byte[] blob = (byte[]) mapPerson.get("avatar");
+						if(blob!=null){
+							String avatarNow = new String(blob);
+							if(avatarNow.indexOf("/dcm") > -1){
+								mapPerson.put("avatar",avatarNow);
+							}
+						}
+					}
+
 					Map<String, Object> result = new HashMap<>();
 					//人员id
 //					String personId = mapPersons.get(0).get("id").toString();
 					String personId = mapPerson.get("id").toString();
+					//获取人员问诊信息
+					TInterrogation tInterrogation = tInterrogationList.stream().filter(ii -> personId.contains(ii.getPersonId())).findFirst().orElse(null);
+					if(tInterrogation!=null){
+						mapPerson.put("work_year",tInterrogation.getWorkYear());
+						mapPerson.put("work_month",tInterrogation.getWorkMonth());
+						mapPerson.put("exposure_work_year",tInterrogation.getExposureWorkYear());
+						mapPerson.put("exposure_work_month",tInterrogation.getExposureWorkMonth());
+						mapPerson.put("exposure_start_date",tInterrogation.getExposureStartDate());
+						mapPerson.put("nation",tInterrogation.getNation());
+						mapPerson.put("check_num",tInterrogation.getCheckNum());
+						mapPerson.put("disease_name",tInterrogation.getDiseaseName());
+						mapPerson.put("is_cured",tInterrogation.getIsCured());
+						mapPerson.put("menarche",tInterrogation.getMenarche());
+						mapPerson.put("period",tInterrogation.getPeriod());
+						mapPerson.put("cycle",tInterrogation.getCycle());
+						mapPerson.put("last_menstruation",tInterrogation.getLastMenstruation());
+						mapPerson.put("existing_children",tInterrogation.getExistingChildren());
+						mapPerson.put("abortion",tInterrogation.getAbortion());
+						mapPerson.put("premature",tInterrogation.getPremature());
+						mapPerson.put("death",tInterrogation.getDeath());
+						mapPerson.put("abnormal_fetus",tInterrogation.getAbnormalFetus());
+						mapPerson.put("smoke_state",tInterrogation.getSmokeState());
+						mapPerson.put("package_every_day",tInterrogation.getPackageEveryDay());
+						mapPerson.put("smoke_year",tInterrogation.getSmokeYear());
+						mapPerson.put("drink_state",tInterrogation.getDrinkState());
+						mapPerson.put("ml_every_day",tInterrogation.getMlEveryDay());
+						mapPerson.put("drink_year",tInterrogation.getDrinkYear());
+						mapPerson.put("other_info",tInterrogation.getOtherInfo());
+						mapPerson.put("symptom",tInterrogation.getSymptom());
+						mapPerson.put("education",tInterrogation.getEducation());
+						mapPerson.put("family_address",tInterrogation.getFamilyAddress());
+						mapPerson.put("menstrual_history",tInterrogation.getMenstrualHistory());
+						mapPerson.put("menstrual_info",tInterrogation.getMenstrualInfo());
+						mapPerson.put("allergies",tInterrogation.getAllergies());
+						mapPerson.put("allergies_info",tInterrogation.getAllergiesInfo());
+						mapPerson.put("birthplace_code",tInterrogation.getBirthplaceCode());
+						mapPerson.put("birthplace_name",tInterrogation.getBirthplaceName());
+						mapPerson.put("family_history",tInterrogation.getFamilyHistory());
+						mapPerson.put("past_medical_history_other_info",tInterrogation.getPastMedicalHistoryOtherInfo());
+						mapPerson.put("wz_check_doctor",tInterrogation.getWzCheckDoctor());
+						mapPerson.put("wz_check_time",tInterrogation.getWzCheckTime());
+						mapPerson.put("wz_check_autograph",tInterrogation.getWzCheckAutograph());
+
+						mapPerson.put("marriage_date",tInterrogation.getMarriageDate());//婚姻史-结婚日期
+						mapPerson.put("spouse_radiation_situation",tInterrogation.getSpouseRadiationSituation());//婚姻史-配偶接触放射线情况
+						mapPerson.put("spouse_health_situation",tInterrogation.getSpouseHealthSituation());//婚姻史-配偶接触放射线情况
+						mapPerson.put("pregnancy_count",tInterrogation.getPregnancyCount());//孕次
+						mapPerson.put("live_birth",tInterrogation.getLiveBirth());//活产
+						mapPerson.put("abortion_small",tInterrogation.getAbortionSmall());//自然流产
+						mapPerson.put("multiparous",tInterrogation.getMultiparous());//多胎
+						mapPerson.put("ectopic_pregnancy",tInterrogation.getEctopicPregnancy());//异位妊娠
+						mapPerson.put("boys",tInterrogation.getBoys());//现有男孩
+						mapPerson.put("boys_birth",tInterrogation.getBoysBirth());//现有男孩-出生日期
+						mapPerson.put("girls",tInterrogation.getGirls());//现有女孩
+						mapPerson.put("girls_birth",tInterrogation.getGirlsBirth());//现有女孩-出生日期
+						mapPerson.put("infertility_reason",tInterrogation.getInfertilityReason());//不孕不育原因
+						mapPerson.put("childrens_health",tInterrogation.getChildrensHealth());//子女健康情况
+
+						mapPerson.put("quit_somking",tInterrogation.getQuitSomking());//戒烟年数
+						mapPerson.put("job",tInterrogation.getJob());//职务/职称
+						mapPerson.put("zip_code",tInterrogation.getZipCode());//邮政编码
+					}
+					if(mapPerson.get("wz_check_autograph")!=null){
+						//字节转字符串
+						byte[] blob = (byte[]) mapPerson.get("wz_check_autograph");
+						if(blob!=null){
+							String avatarNow = new String(blob);
+							if(avatarNow.indexOf("/dcm") > -1){
+								mapPerson.put("wz_check_autograph",avatarNow);
+							}
+						}
+					}
+
 					//订单Id
 					String groupId = mapPersons.get(0).get("group_id").toString();
 					result.put("departResults", departResults.stream().filter(ii -> personId.contains(ii.getPersonId())).collect(Collectors.toList()));
@@ -1300,6 +1908,11 @@ public class TTemplateController {
 			}
 			//第一步查询人员信息
 			List <Map<String, Object>> mapPersons = tGroupPersonService.getGroupPersonInfoByIds(Arrays.asList(ids));
+			List<TInspectionRecord> groupPersonOrderNumByIds = tGroupPersonService.getGroupPersonOrderNumByIds();
+			List<TInspectionRecord> collect = new ArrayList<>();
+			for (int i = 0; i < Arrays.asList(ids).size(); i++) {
+				 collect = groupPersonOrderNumByIds.stream().filter(aa -> aa.getPersonId().equals(Arrays.asList(ids).get(0))).collect(Collectors.toList());
+			}
 			if(mapPersons==null ||mapPersons.size()==0){
 				return ResultUtil.error("查询体检报告结果数据异常:查询人员信息失败" );
 			}
@@ -1325,6 +1938,164 @@ public class TTemplateController {
 					//人员id
 //					String personId = mapPersons.get(0).get("id").toString();
 					String personId = mapPerson.get("id").toString();
+					if (collect!=null && collect.size()>0){
+					   mapPerson.put("number",collect.get(0).getRowno());
+					}
+					//订单Id
+					String groupId = mapPersons.get(0).get("group_id").toString();
+					result.put("orderGroup", orderGroup.stream().filter(ii -> groupId.contains(ii.getId())).findFirst().orElse(null));
+					mapPerson.put("inspectionRecord",inspectionRecord.stream().filter(ii -> personId.contains(ii.getPersonId())).findFirst().orElse(null));
+					result.put("mapPerson",mapPerson);
+					results.add(result);
+				}
+			}
+
+			return ResultUtil.data(results);
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			return ResultUtil.error("查询体检报告结果数据异常:" + e.getMessage());
+		}
+	}
+
+	@ApiOperation("根据主键来获取模板信息数据")
+	@PostMapping("generateReportByPersonIdsTJJL")
+	public Result<Object> generateReportByPersonIdsTJJL(@RequestBody String[] ids) {
+		try {
+			List<Map<String, Object>>results  = new ArrayList<>();
+			if(ids == null || ids.length == 0){
+				return ResultUtil.error("查询体检报告结果数据异常:人员Id为空" );
+			}
+			//第一步查询人员信息
+			List <Map<String, Object>> mapPersons = tGroupPersonService.getGroupPersonInfoByIds(Arrays.asList(ids));
+			if(mapPersons==null ||mapPersons.size()==0){
+				return ResultUtil.error("查询体检报告结果数据异常:查询人员信息失败" );
+			}
+			List<String> groupIds = new ArrayList<>();
+			mapPersons.stream().forEach(m -> {
+				if (m.containsKey("group_id")) {
+					//没得才添加
+					if(!groupIds.contains(m.get("group_id").toString())){
+						groupIds.add(m.get("group_id").toString());
+					}
+				}
+			});
+			List<TOrderGroup> orderGroup = orderGroupService.listByIds (groupIds);
+			//查询总检结果
+			QueryWrapper<TInspectionRecord> queryWrapperInspectionRecord = new QueryWrapper<>();
+			queryWrapperInspectionRecord.lambda().and(i -> i.in(TInspectionRecord::getPersonId, Arrays.asList(ids)));
+			queryWrapperInspectionRecord.lambda().and(i -> i.eq(TInspectionRecord::getDelFlag, 0));
+			List<TInspectionRecord> inspectionRecord = tInspectionRecordService.list(queryWrapperInspectionRecord);
+			for(TInspectionRecord tInspectionRecord : inspectionRecord){
+				if(tInspectionRecord!=null && tInspectionRecord.getInspectionAutograph()!=null){
+					//字节转字符串
+					byte[] blob = (byte[]) tInspectionRecord.getInspectionAutograph();
+					if(blob!=null){
+						String avatarNow = new String(blob);
+						if(avatarNow.indexOf("/dcm") > -1){
+							tInspectionRecord.setInspectionAutograph(avatarNow);
+						}
+					}
+				}
+			}
+
+			//问诊查询
+			QueryWrapper<TInterrogation> tInterrogationQueryWrapper = new QueryWrapper<>();
+			tInterrogationQueryWrapper.eq("del_flag",0);
+			tInterrogationQueryWrapper.in("person_id",ids);
+			tInterrogationQueryWrapper.orderByDesc("create_time");
+			List<TInterrogation> tInterrogationList = interrogationService.list(tInterrogationQueryWrapper);
+
+			for (Map<String, Object> mapPerson:mapPersons) {
+				if(mapPerson!=null  && mapPerson.size()>0 && mapPerson.containsKey("id") ){
+					if(mapPerson.get("avatar")!=null){
+						//字节转字符串
+						byte[] blob = (byte[]) mapPerson.get("avatar");
+						if(blob!=null){
+							String avatarNow = new String(blob);
+							if(avatarNow.indexOf("/dcm") > -1){
+								mapPerson.put("avatar",avatarNow);
+							}
+						}
+					}
+
+					Map<String, Object> result = new HashMap<>();
+					//人员id
+//					String personId = mapPersons.get(0).get("id").toString();
+					String personId = mapPerson.get("id").toString();
+					//获取人员问诊信息
+					TInterrogation tInterrogation = tInterrogationList.stream().filter(ii -> personId.contains(ii.getPersonId())).findFirst().orElse(null);
+					if(tInterrogation!=null){
+						mapPerson.put("work_year",tInterrogation.getWorkYear());
+						mapPerson.put("work_month",tInterrogation.getWorkMonth());
+						mapPerson.put("exposure_work_year",tInterrogation.getExposureWorkYear());
+						mapPerson.put("exposure_work_month",tInterrogation.getExposureWorkMonth());
+						mapPerson.put("exposure_start_date",tInterrogation.getExposureStartDate());
+						mapPerson.put("nation",tInterrogation.getNation());
+						mapPerson.put("check_num",tInterrogation.getCheckNum());
+						mapPerson.put("disease_name",tInterrogation.getDiseaseName());
+						mapPerson.put("is_cured",tInterrogation.getIsCured());
+						mapPerson.put("menarche",tInterrogation.getMenarche());
+						mapPerson.put("period",tInterrogation.getPeriod());
+						mapPerson.put("cycle",tInterrogation.getCycle());
+						mapPerson.put("last_menstruation",tInterrogation.getLastMenstruation());
+						mapPerson.put("existing_children",tInterrogation.getExistingChildren());
+						mapPerson.put("abortion",tInterrogation.getAbortion());
+						mapPerson.put("premature",tInterrogation.getPremature());
+						mapPerson.put("death",tInterrogation.getDeath());
+						mapPerson.put("abnormal_fetus",tInterrogation.getAbnormalFetus());
+						mapPerson.put("smoke_state",tInterrogation.getSmokeState());
+						mapPerson.put("package_every_day",tInterrogation.getPackageEveryDay());
+						mapPerson.put("smoke_year",tInterrogation.getSmokeYear());
+						mapPerson.put("drink_state",tInterrogation.getDrinkState());
+						mapPerson.put("ml_every_day",tInterrogation.getMlEveryDay());
+						mapPerson.put("drink_year",tInterrogation.getDrinkYear());
+						mapPerson.put("other_info",tInterrogation.getOtherInfo());
+						mapPerson.put("symptom",tInterrogation.getSymptom());
+						mapPerson.put("education",tInterrogation.getEducation());
+						mapPerson.put("family_address",tInterrogation.getFamilyAddress());
+						mapPerson.put("menstrual_history",tInterrogation.getMenstrualHistory());
+						mapPerson.put("menstrual_info",tInterrogation.getMenstrualInfo());
+						mapPerson.put("allergies",tInterrogation.getAllergies());
+						mapPerson.put("allergies_info",tInterrogation.getAllergiesInfo());
+						mapPerson.put("birthplace_code",tInterrogation.getBirthplaceCode());
+						mapPerson.put("birthplace_name",tInterrogation.getBirthplaceName());
+						mapPerson.put("family_history",tInterrogation.getFamilyHistory());
+						mapPerson.put("past_medical_history_other_info",tInterrogation.getPastMedicalHistoryOtherInfo());
+						mapPerson.put("wz_check_doctor",tInterrogation.getWzCheckDoctor());
+						mapPerson.put("wz_check_time",tInterrogation.getWzCheckTime());
+						mapPerson.put("wz_check_autograph",tInterrogation.getWzCheckAutograph());
+
+						mapPerson.put("marriage_date",tInterrogation.getMarriageDate());//婚姻史-结婚日期
+						mapPerson.put("spouse_radiation_situation",tInterrogation.getSpouseRadiationSituation());//婚姻史-配偶接触放射线情况
+						mapPerson.put("spouse_health_situation",tInterrogation.getSpouseHealthSituation());//婚姻史-配偶接触放射线情况
+						mapPerson.put("pregnancy_count",tInterrogation.getPregnancyCount());//孕次
+						mapPerson.put("live_birth",tInterrogation.getLiveBirth());//活产
+						mapPerson.put("abortion_small",tInterrogation.getAbortionSmall());//自然流产
+						mapPerson.put("multiparous",tInterrogation.getMultiparous());//多胎
+						mapPerson.put("ectopic_pregnancy",tInterrogation.getEctopicPregnancy());//异位妊娠
+						mapPerson.put("boys",tInterrogation.getBoys());//现有男孩
+						mapPerson.put("boys_birth",tInterrogation.getBoysBirth());//现有男孩-出生日期
+						mapPerson.put("girls",tInterrogation.getGirls());//现有女孩
+						mapPerson.put("girls_birth",tInterrogation.getGirlsBirth());//现有女孩-出生日期
+						mapPerson.put("infertility_reason",tInterrogation.getInfertilityReason());//不孕不育原因
+						mapPerson.put("childrens_health",tInterrogation.getChildrensHealth());//子女健康情况
+
+						mapPerson.put("quit_somking",tInterrogation.getQuitSomking());//戒烟年数
+						mapPerson.put("job",tInterrogation.getJob());//职务/职称
+						mapPerson.put("zip_code",tInterrogation.getZipCode());//邮政编码
+					}
+					if(mapPerson.get("wz_check_autograph")!=null){
+						//字节转字符串
+						byte[] blob = (byte[]) mapPerson.get("wz_check_autograph");
+						if(blob!=null){
+							String avatarNow = new String(blob);
+							if(avatarNow.indexOf("/dcm") > -1){
+								mapPerson.put("wz_check_autograph",avatarNow);
+							}
+						}
+					}
+
 					//订单Id
 					String groupId = mapPersons.get(0).get("group_id").toString();
 					result.put("orderGroup", orderGroup.stream().filter(ii -> groupId.contains(ii.getId())).findFirst().orElse(null));
@@ -1389,7 +2160,7 @@ public class TTemplateController {
 	@ApiOperation("批量生成体检报告(先合并word 再 转pdf)")
 	@PostMapping("/getReportWordBatch")
 	public Result<Object> getReportWordBatch(@RequestBody Map map){
-		String res = "";
+		List<String> res = new ArrayList<>();
 		if(map ==null || map.size()==0 || !map.containsKey("data")){
 			return ResultUtil.error("生成体检报告异常:参数为空" );
 		}

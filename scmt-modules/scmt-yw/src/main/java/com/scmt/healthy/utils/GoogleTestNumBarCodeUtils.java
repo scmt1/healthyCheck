@@ -71,6 +71,25 @@ public class GoogleTestNumBarCodeUtils {
     }
 
     /**
+     * 生成 图片缓冲 身份证号
+     *
+     * @param vaNumber VA 码
+     * @return 返回BufferedImage
+     * @author fxbin
+     */
+    public static BufferedImage getBarCodeIdCard(String vaNumber) {
+        try {
+            Code128Writer writer = new Code128Writer();
+            // 编码内容, 编码类型, 宽度, 高度, 设置参数
+            BitMatrix bitMatrix = writer.encode(vaNumber, BarcodeFormat.CODE_128, 450, 50, hints);
+            return MatrixToImageWriter.toBufferedImage(bitMatrix);
+        } catch (WriterException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    /**
      * 把带logo的二维码下面加上文字
      *
      * @param image 条形码图片
@@ -200,6 +219,21 @@ public class GoogleTestNumBarCodeUtils {
      */
     public static String generatorBase64Barcode(String data, String info) throws IOException {
         BufferedImage image = insertWords(getBarCode(data), info);
+        //输出流
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        ImageIO.write(image, "png", stream);
+        String encode = Base64.encode(stream.toByteArray());
+        return "data:image/png;base64," + encode;
+    }
+
+
+    /**
+     * @param data 生成条形码的数据 身份证号
+     * @param info 条形码下方的描述
+     * @return
+     */
+    public static String generatorBase64BarcodeIdCard(String data, String info) throws IOException {
+        BufferedImage image = insertWords(getBarCodeIdCard(data), info);
         //输出流
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         ImageIO.write(image, "png", stream);

@@ -4,20 +4,20 @@
 
     <!-- 通用查询映射结果 -->
     <resultMap id="BaseResultMap" type="com.scmt.healthy.entity.TInspectionRecord">
-        <id column="id" property="id" />
-        <result column="person_id" property="personId" />
-        <result column="inspection_doctor" property="inspectionDoctor" />
-        <result column="inspection_date" property="inspectionDate" />
-        <result column="operator" property="operator" />
-        <result column="conclusion" property="conclusion" />
-        <result column="health_certificate_conditions" property="healthCertificateConditions" />
-        <result column="del_flag" property="delFlag" />
-        <result column="create_id" property="createId" />
-        <result column="create_date" property="createTime" />
-        <result column="update_id" property="updateId" />
-        <result column="update_date" property="updateTime" />
-        <result column="delete_id" property="deleteId" />
-        <result column="delete_date" property="deleteTime" />
+        <id column="id" property="id"/>
+        <result column="person_id" property="personId"/>
+        <result column="inspection_doctor" property="inspectionDoctor"/>
+        <result column="inspection_date" property="inspectionDate"/>
+        <result column="operator" property="operator"/>
+        <result column="conclusion" property="conclusion"/>
+        <result column="health_certificate_conditions" property="healthCertificateConditions"/>
+        <result column="del_flag" property="delFlag"/>
+        <result column="create_id" property="createId"/>
+        <result column="create_date" property="createTime"/>
+        <result column="update_id" property="updateId"/>
+        <result column="update_date" property="updateTime"/>
+        <result column="delete_id" property="deleteId"/>
+        <result column="delete_date" property="deleteTime"/>
     </resultMap>
 
     <!-- 通用查询结果列 -->
@@ -26,5 +26,17 @@
     </sql>
     <select id="getByPersonId" resultType="com.scmt.healthy.entity.TInspectionRecord">
         select * from t_inspection_record where person_id = #{personId}  and  del_flag = 0
+    </select>
+    <select id="getInspectionRecordList" resultType="com.scmt.healthy.entity.TInspectionRecord">
+select t_inspection_record.person_id,
+    t_inspection_record.health_certificate_conditions,
+         t_group_person.id_card,
+         t_certificate_manage.registration_number,
+		t_inspection_record.inspection_doctor,
+		t_inspection_record.inspection_date,
+		t_certificate_manage.physical_examination_id
+          from t_inspection_record left join t_group_person on t_inspection_record.person_id = t_group_person.id
+         left join t_certificate_manage on t_certificate_manage.person_id = t_inspection_record.person_id
+         ${ew.customSqlSegment}
     </select>
 </mapper>

@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scmt.healthy.mapper.TCheckOrgMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.scmt.healthy.entity.TCheckOrg">
+        <id column="cid" property="id" />
+        <result column="cname" property="name" />
+        <result column="introduction" property="introduction" />
+        <result column="address" property="address" />
+        <result column="phone" property="phone" />
+        <result column="business_hours" property="businessHours" />
+        <result column="avatar" property="avatar" />
+        <result column="images" property="images"/>
+        <result column="position" property="position" />
+        <result column="notice" property="notice" />
+        <result column="level" property="level" />
+        <result column="tags" property="tags" />
+        <result column="create_by" property="createBy" />
+        <result column="create_time" property="createTime" />
+        <result column="update_by" property="updateBy" />
+        <result column="update_time" property="updateTime" />
+        <result column="del_flag" property="delFlag" />
+        <result column="ctype" property="type" />
+        <result column="code" property="code" />
+        <result column="status" property="status" />
+        <result column="check_type" property="checkType" />
+    </resultMap>
+
+    <resultMap id="relationShipQueryOrgAndComboMap" type="com.scmt.healthy.entity.TCheckOrg" extends="BaseResultMap">
+        <collection property="tCombos" ofType="com.scmt.healthy.entity.TCombo">
+            <id column="id" property="id"/>
+            <result column="name" property="name"/>
+            <result column="url" property="url"/>
+            <result column="type" property="type"/>
+            <result column="hazard_factors" property="hazardFactors"/>
+            <result column="hazard_factors_text" property="hazardFactorsText"/>
+            <result column="career_stage" property="careerStage"/>
+            <result column="occupational_diseases" property="occupationalDiseases"/>
+            <result column="occupational_taboo" property="occupationalTaboo"/>
+            <result column="diagnostic_criteria" property="diagnosticCriteria"/>
+            <result column="symptom_inquiry" property="symptomInquiry"/>
+            <result column="fit_sex" property="fitSex"/>
+            <result column="remark" property="remark"/>
+            <result column="check_org_id" property="checkOrgId"/>
+        </collection>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        t_check_org.id,
+        t_check_org.name,
+        t_check_org.introduction,
+        t_check_org.address,
+        t_check_org.phone,
+        t_check_org.business_hours,
+        t_check_org.avatar,
+        t_check_org.position,
+        t_check_org.notice,
+        t_check_org.images,
+        t_check_org.level,
+        t_check_org.tags,
+        t_check_org.create_by,
+        t_check_org.create_time,
+        t_check_org.update_by,
+        t_check_org.update_time,
+        t_check_org.del_flag,
+        t_check_org.type,
+        t_check_org.code,
+        t_check_org.status,
+        t_check_org.check_type
+    </sql>
+
+    <select id="selectOrgAndCombo" resultMap="relationShipQueryOrgAndComboMap">
+        SELECT
+            t_check_org.id AS cid,
+            t_check_org.name AS cname,
+            t_check_org.introduction,
+            t_check_org.address,
+            t_check_org.phone,
+            t_check_org.business_hours,
+            t_check_org.avatar,
+            t_check_org.position,
+            t_check_org.notice,
+            t_check_org.images,
+            t_check_org.level,
+            t_check_org.tags,
+            t_check_org.create_by,
+            t_check_org.create_time,
+            t_check_org.update_by,
+            t_check_org.update_time,
+            t_check_org.del_flag,
+            t_check_org.type AS ctype,
+            t_check_org.code,
+            t_check_org.status,
+            t_check_org.check_type,
+            t_combo.id,
+            t_combo.`name`,
+            t_combo.type,
+            t_combo.hazard_factors,
+            t_combo.hazard_factors_text,
+            t_combo.career_stage,
+            t_combo.occupational_diseases,
+            t_combo.occupational_taboo,
+            t_combo.diagnostic_criteria,
+            t_combo.symptom_inquiry,
+            t_combo.fit_sex,
+            t_combo.remark,
+            t_combo.check_org_id,
+            t_combo.url
+        FROM
+            t_check_org,t_combo,t_check_item
+        WHERE
+            t_check_org.id = t_check_item.check_org_id
+        AND t_combo.id = t_check_item.t_combo_id
+        AND t_combo.del_flag = 0
+            <if test="ew != null">
+                AND ${ew.sqlSegment}
+            </if>
+    </select>
+</mapper>

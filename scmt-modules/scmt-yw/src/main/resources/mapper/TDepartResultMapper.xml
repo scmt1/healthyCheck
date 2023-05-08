@@ -22,7 +22,8 @@
 
     <select id="queryTDepartResultList" resultType="com.scmt.healthy.entity.TDepartResult">
         SELECT
-            t_depart_result.*
+            t_depart_result.*,
+            (select  COUNT(1) from t_depart_item_result where  order_group_item_id = t_depart_result.group_item_id and t_depart_item_result.person_id = #{personId} and positive = 1) as positive
         FROM
             t_depart_result
         where t_depart_result.person_id = #{personId} and t_depart_result.del_flag = 0
@@ -30,7 +31,7 @@
             SELECT id FROM t_order_group_item WHERE group_id = #{groupId} AND del_flag = 0
             union all
             SELECT id FROM t_review_project WHERE group_id = #{groupId} AND person_id = #{personId} and is_pass = 2 AND del_flag = 0
-            )
+            ) and t_depart_result.diagnose_sum != '拒绝检查'
         GROUP BY t_depart_result.group_item_id
         order by check_date asc
     </select>
@@ -39,7 +40,7 @@
         select r.office_id,r.office_name
         from t_depart_result r
         where r.person_id = #{personId}
-        and r.del_flag = '0' group by office_id order by r.office_id desc
+        and r.del_flag = '0' and r.diagnose_sum != '拒绝检查' group by office_id order by r.office_id desc
     </select>
 
     <select id="isCheckComplete" resultType="integer">
@@ -55,5 +56,39 @@
                 #{item}
             </foreach>
         </if>
+    </select>
+    <!--查询科室已检查项目数量-->
+    <select id="queryTDepartResultStatistics" resultType="com.scmt.healthy.entity.TDepartResult">
+        SELECT aa.*,( SELECT sale_price FROM t_order_group_item WHERE id = aa.group_item_id LIMIT 1 ) AS sale_price,
+        ( SELECT discount_price FROM t_order_group_item WHERE id = aa.group_item_id LIMIT 1 ) AS discount_price
+        FROM
+            (
+            SELECT
+                count( t_depart_result.person_id ) as count,
+                REPLACE ( t_depart_result.group_item_name, '(复)', '' ) AS group_item_name,
+                t_depart_result.office_name,
+                t_depart_result.group_item_id
+            FROM
+                t_depart_result
+            WHERE
+                create_date BETWEEN #{startDate} AND #{endDate}
+                <if test="officeIds != null and officeIds.size > 0">
+                    AND office_id IN
+                    <foreach collection="officeIds" item="item" separator=","  open="(" close=")">
+                        #{item}
+                    </foreach>
+                </if>
+                <if test="officeIds == null or officeIds.size== 0">
+                    AND office_id is not null
+                </if>
+                <if test="dept != null and dept!= ''">
+                    and person_id in (SELECT Id FROM t_group_person WHERE del_flag = 0 and  unit_id = #{dept})
+                </if>
+            GROUP BY
+                REPLACE ( t_depart_result.group_item_name, '(复)', '' )
+            ORDER BY
+                t_depart_result.office_id
+            ) AS aa
+
     </select>
 </mapper>

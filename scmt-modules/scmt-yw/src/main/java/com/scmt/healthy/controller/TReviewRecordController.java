@@ -50,6 +50,8 @@ public class TReviewRecordController{
 	private ITOrderGroupItemService tOrderGroupItemService;
 	@Autowired
 	private ITGroupOrderService groupOrderService;
+	@Autowired
+	private ITReviewPersonService itReviewPersonService;
 	/**
 	* 功能描述：新增复查记录数据
 	* @param reviewList 实体
@@ -282,8 +284,22 @@ public class TReviewRecordController{
 	@GetMapping("queryTReviewRecordList")
 	public Result<Object> queryTReviewRecordList(TReviewProject  tReviewProject){
 		try {
+			String reviewPersonId = "";//复查人员id
+			QueryWrapper<TReviewPerson> tReviewPersonQueryWrapper = new QueryWrapper<>();
+			tReviewPersonQueryWrapper.eq("del_flag",0);
+			tReviewPersonQueryWrapper.eq("old_person_id",tReviewProject.getPersonId());
+			TReviewPerson tReviewPerson = itReviewPersonService.getOne(tReviewPersonQueryWrapper);
+			if(tReviewPerson!=null && tReviewPerson.getId()!=null && StringUtils.isNotBlank(tReviewPerson.getId())){
+				reviewPersonId = tReviewPerson.getId();
+			}else{
+//				reviewPersonId = tReviewProject.getPersonId();
+				List<TReviewProject> list = new ArrayList<>();
+				return ResultUtil.data(list);
+			}
 			QueryWrapper<TReviewProject> queryWrapper = new QueryWrapper<>();
-			queryWrapper.eq("person_id",tReviewProject.getPersonId());
+//			queryWrapper.eq("person_id",tReviewProject.getPersonId());
+			queryWrapper.eq("person_id",reviewPersonId);
+			queryWrapper.eq("del_flag",0);
 			List<TReviewProject> list = tReviewProjectService.list(queryWrapper);
 			return ResultUtil.data(list);
 		} catch (Exception e) {

@@ -46,10 +46,69 @@
 
     <!--分页查询-->
     <select id="queryTCertificateManageListByPage" resultType="com.scmt.healthy.entity.TCertificateManage">
-         SELECT t_certificate_manage.*  FROM t_certificate_manage
+         SELECT
+            t_certificate_manage.id,
+            t_certificate_manage.order_id,
+            t_certificate_manage.person_id ,
+            t_certificate_manage.code ,
+            t_certificate_manage.name ,
+            t_certificate_manage.sex ,
+            t_certificate_manage.age ,
+            t_certificate_manage.results ,
+            t_certificate_manage.date_of_issue ,
+            t_certificate_manage.term_of_validity ,
+            t_certificate_manage.unit_of_issue ,
+            t_certificate_manage.code_img ,
+            t_certificate_manage.is_show ,
+            t_certificate_manage.del_flag ,
+            t_certificate_manage.create_id ,
+            t_certificate_manage.create_time ,
+            t_certificate_manage.update_id ,
+            t_certificate_manage.update_time ,
+            t_certificate_manage.delete_id ,
+            t_certificate_manage.delete_time ,
+            t_certificate_manage.is_upload,
+            t_certificate_manage.exception_message,
+            t_group_person.avatar as head_img,
+            t_group_person.group_id as group_id,
+            t_group_person.certificate_type as certificate_type,
+            t_group_person.print_state,
+            t_group_person.regist_date,
+            t_group_person.id_card,
+            t_group_person.mobile,
+            t_certificate_manage.health_ccertificate
+        FROM
+            t_certificate_manage
+            LEFT JOIN t_group_person on t_certificate_manage.person_id = t_group_person.id
         ${ew.customSqlSegment}
     </select>
-
+    <select id="getByPersonIdList" resultType="com.scmt.healthy.entity.TCertificateManage">
+         select
+         t_certificate_manage.person_id,
+         t_certificate_manage.name,
+        t_certificate_manage.sex,
+        t_certificate_manage.age,
+        t_group_person.id_card,
+        t_group_person.mobile,
+        t_group_person.certificate_type,
+        t_certificate_manage.date_of_issue,
+        t_certificate_manage.head_img,
+        t_group_person.birth,
+        health_ccertificate,
+        registration_number,
+		t_group_unit.name AS unitName,
+		t_group_unit.uscc,
+		t_interrogation.nation,
+		t_certificate_manage.medical_certificate_id,
+		t_certificate_manage.basic_person_id,
+		t_certificate_manage.physical_examination_id
+        from t_certificate_manage left join
+        t_group_person on t_certificate_manage.person_id = t_group_person.id left join t_group_unit on t_group_person.unit_id = t_group_unit.id left join t_interrogation on t_certificate_manage.person_id = t_interrogation.person_id
+        ${ew.customSqlSegment}
+    </select>
+    <select id="findMaxOldNum" resultType="java.lang.String">
+        SELECT max(right(registration_number,6)) FROM t_certificate_manage
+    </select>
 
 
 </mapper>

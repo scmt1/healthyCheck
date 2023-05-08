@@ -5,7 +5,7 @@ import com.scmt.healthy.entity.TConclusion;
 
 /**
  * <p>
- * 用户条形码 Mapper 接口
+ * 用户 Mapper 接口
  * </p>
  *
  * @author ....

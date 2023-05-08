@@ -10,6 +10,7 @@ import com.scmt.healthy.entity.TGroupPerson;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * <p>
@@ -32,4 +33,14 @@ public interface TDepartResultMapper extends BaseMapper<TDepartResult> {
     Integer isCheckComplete(@Param("personId")String personId, @Param("groupId")String groupId, @Param("officeId")String officeId);
 
     Integer queryTDepartResultByPersonId(@Param("groupItemIdList") List<String> groupItemIdList,@Param("personId")String personId);
+
+    /**
+     * 查询科室已检查项目数量
+     * @param startDate 开始时间
+     * @param endDate 结束时间
+     * @param officeIds 科室集合
+     * @param dept 单位
+     * @return 科室已检查项目数量
+     */
+    List<TDepartResult> queryTDepartResultStatistics(@Param("startDate")String startDate, @Param("endDate")String endDate, @Param("officeIds")List<String> officeIds, @Param("dept")String dept);
 }

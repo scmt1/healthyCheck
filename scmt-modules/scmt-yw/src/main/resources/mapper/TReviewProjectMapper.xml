@@ -50,16 +50,19 @@
              , gp.sex
              , gp.age
              , gp.order_id
-             , gp.test_num
+             , rgp.test_num
         FROM t_review_project
-                 LEFT JOIN t_group_person gp ON gp.id = t_review_project.person_id
+                 LEFT JOIN t_review_person rgp ON rgp.id = t_review_project.person_id
+                 LEFT JOIN t_group_person gp ON gp.id = rgp.first_person_id
             ${ew.customSqlSegment}
+            and EXISTS(select id from t_review_person where id = t_review_project.person_id)
+            GROUP BY t_review_project.person_id
     </select>
 
     <select id="getTGroupPersonReviewerAndDept" resultType="com.scmt.healthy.entity.TReviewProject">
         SELECT t_review_project.id,
         t_review_project.person_id,
-        t_review_project.person_name,
+        gp.person_name,
         t_review_project.name,
         t_review_project.short_name,
         t_review_project.order_num,
@@ -94,24 +97,36 @@
              , gp.sex
              , gp.age
              , gp.order_id
-             , gp.test_num
+             , rgp.test_num
         FROM t_review_project
-                 LEFT JOIN t_group_person gp ON gp.id = t_review_project.person_id
+                 LEFT JOIN t_review_person rgp ON rgp.id = t_review_project.person_id
+                 LEFT JOIN t_group_person gp ON gp.id = rgp.first_person_id
             ${ew.customSqlSegment}
-            and EXISTS (SELECT id FROM t_group_person WHERE del_flag = 0 AND id = t_review_project.person_id
+            and EXISTS (SELECT id FROM t_review_person WHERE del_flag = 0 AND id = t_review_project.person_id
                         <if test="deptName != null and deptName != ''">
                             and dept = #{deptName}
                         </if>
                         <if test="testNum != null and testNum != ''">
                             and test_num = #{testNum}
+                        </if>
+                        <if test="idCard != null and idCard != ''">
+                            and id_card = #{idCard}
                         </if>)
+            and EXISTS(select id from t_review_person where id = t_review_project.person_id)
         GROUP BY t_review_project.person_id
     </select>
 
-    <select id="getTGroupPersonReviewerById" resultType="com.scmt.healthy.entity.TGroupPerson">
+    <!--<select id="getTGroupPersonReviewerById" resultType="com.scmt.healthy.entity.TGroupPerson">
         SELECT *
         FROM t_group_person
         WHERE id = (SELECT DISTINCT(person_id) FROM t_review_project WHERE id = #{id})
+    </select>-->
+
+    <select id="getTGroupPersonReviewerById" resultType="com.scmt.healthy.entity.TGroupPerson">
+        SELECT t_review_person.*,gp.sex,gp.age,gp.hazard_factors,gp.hazard_factors_text,gp.work_state_code,gp.work_state_text,gp.avatar
+        FROM t_review_person
+        left join t_group_person gp on gp.id = t_review_person.first_person_id
+        WHERE t_review_person.id = (SELECT DISTINCT(person_id) FROM t_review_project WHERE t_review_project.id = #{id})
     </select>
 
     <select id="queryDataListByPersonId" resultType="com.scmt.healthy.entity.TReviewProject">
@@ -153,7 +168,7 @@
         ORDER BY t_review_project.office_id ASC
     </select>
 
-    <select id="queryReviewPersonData" resultType="com.scmt.healthy.entity.TGroupPerson">
+    <!--<select id="queryReviewPersonData" resultType="com.scmt.healthy.entity.TGroupPerson">
         SELECT
             t_group_person.test_num,
             t_group_person.person_name,
@@ -164,8 +179,8 @@
             t_group_person.hazard_factors_text,
             t_group_person.work_type_text,
             t_group_person.work_name,
-            t_group_person.exposure_work_year,
-            t_group_person.exposure_work_month,
+            t_interrogation.exposure_work_year,
+            t_interrogation.exposure_work_month,
             t_group_person.work_state_text,
             t_group_person.regist_date,
             t_group_person.check_result,
@@ -177,16 +192,81 @@
             GROUP_CONCAT(DISTINCT REPLACE(t_review_project.portfolio_project_name,'(复)','')) AS portfolio_project_name
         FROM  t_review_project
                   LEFT JOIN t_group_person ON t_review_project.person_id = t_group_person.id
+                  LEFT JOIN t_interrogation ON t_interrogation.person_id = t_group_person.id
                   LEFT JOIN t_depart_result ON t_depart_result.person_id = t_group_person.id AND t_depart_result.is_recheck = 1
         WHERE
             t_group_person.del_flag = 0
           AND t_group_person.is_pass >= 2
           AND t_group_person.order_id = #{orderId}
         GROUP BY t_review_project.person_id
+    </select>-->
+
+    <select id="queryReviewPersonData" resultType="com.scmt.healthy.entity.TGroupPerson">
+        SELECT
+            t_review_person.test_num,
+            t_review_person.person_name,
+            t_review_person.is_recheck,
+            t_review_person.is_pass,
+            t_group_person.sex,
+            t_group_person.age,
+            t_review_person.id_card,
+            t_group_person.hazard_factors_text,
+            t_group_person.work_type_text,
+            t_group_person.work_name,
+            t_interrogation.exposure_work_year,
+            t_interrogation.exposure_work_month,
+            t_group_person.work_state_text,
+            t_review_person.regist_date,
+            t_review_person.check_result,
+            t_review_person.physical_type,
+            t_group_person.mobile,
+            GROUP_CONCAT( DISTINCT t_review_project.reason ) AS reason,
+            GROUP_CONCAT(
+            DISTINCT REPLACE ( t_review_project.portfolio_project_name, '(复)', '' )) AS portfolio_project_name
+        FROM
+            t_review_person
+            LEFT JOIN t_review_project ON t_review_project.person_id = t_review_person.id
+            LEFT JOIN t_group_person ON t_review_person.first_person_id = t_group_person.id
+            LEFT JOIN t_interrogation ON t_interrogation.person_id = t_group_person.id
+        WHERE
+            t_review_person.del_flag = 0
+            AND t_review_person.order_id = #{orderId}
+        GROUP BY
+            t_review_person.id
+    </select>
+
+    <select id="queryReviewResultData" resultType="com.scmt.healthy.entity.TGroupPerson">
+        SELECT  t_review_person.*,
+                t_inspection_record.conclusion,
+                t_inspection_record.handle_opinion,
+                t_group_person.sex,
+                t_group_person.age,
+                t_group_person.birth,
+                t_group_person.is_marry,
+                t_group_person.mobile,
+                t_group_person.hazard_factors,
+                t_group_person.hazard_factors_text,
+                t_group_person.work_type_code,
+                t_group_person.work_type_text,
+                t_group_person.work_name,
+                t_group_person.work_state_code,
+                t_group_person.work_state_text,
+                t_interrogation.work_year,
+                t_interrogation.work_month,
+                t_interrogation.exposure_work_year,
+                t_interrogation.exposure_work_month,
+                t_interrogation.exposure_start_date
+        from t_review_person
+        left join t_inspection_record on t_inspection_record.person_id = t_review_person.id
+        left join t_group_person on t_group_person.id = t_review_person.first_person_id
+        left join t_interrogation on t_interrogation.person_id = t_review_person.first_person_id
+        where t_review_person.order_id = #{orderId} and t_review_person.del_flag = 0
+        group by t_review_person.id
     </select>
 
     <select id="queryAllPersonData" resultType="com.scmt.healthy.entity.TGroupPerson">
         SELECT
+            t_group_person.id,
             t_group_person.test_num,
             t_group_person.person_name,
             t_group_person.is_recheck,
@@ -197,8 +277,9 @@
             t_group_person.hazard_factors_text,
             t_group_person.work_type_text,
             t_group_person.work_name,
-            t_group_person.exposure_work_year,
-            t_group_person.exposure_work_month,
+            t_group_person.department,
+            t_interrogation.exposure_work_year,
+            t_interrogation.exposure_work_month,
             t_group_person.work_state_text,
             t_group_person.check_result,
             t_group_person.mobile,
@@ -206,13 +287,22 @@
             t_group_person.physical_type,
             t_group_person.review_statu,
             t_inspection_record.review_result,
+            t_inspection_record.review_result_code,
+            t_inspection_record.review_inspect_date,
+            t_inspection_record.review_opinion,
+            t_inspection_record.conclusion as conclusion_old,
             concat_ws('',t_inspection_record.conclusion,t_inspection_record.other_check_abnormal_results) AS conclusion,
-            concat_ws('',t_inspection_record.handle_opinion,t_inspection_record.career_illness_name) AS handle_opinion
+            concat_ws('',t_inspection_record.handle_opinion,t_inspection_record.career_illness_name) AS handle_opinion,
+            GROUP_CONCAT(DISTINCT td_tj_badrsns.EXAM_CONCLUSION_CODE) as badrsn_conclusion_code,
+	        (select count(id) from relation_person_project_check where person_id = t_group_person.id and state = 2) as qj_count
         FROM t_group_person
                  LEFT JOIN t_inspection_record ON t_inspection_record.person_id = t_group_person.id
+                 LEFT JOIN t_interrogation ON t_interrogation.person_id = t_group_person.id
+                 LEFT JOIN td_tj_badrsns ON td_tj_badrsns.FK_BHK_ID = t_group_person.id
         WHERE
             t_group_person.del_flag = 0
           AND t_group_person.order_id = #{orderId}
+          group by t_group_person.id
     </select>
 <!--           AND is_pass > 3-->
 <!--           AND check_result is not null-->

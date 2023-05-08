@@ -4,9 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-
-import javax.servlet.http.HttpServletResponse;
-
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.scmt.core.common.vo.PageVo;
 import com.scmt.core.common.vo.SearchVo;
@@ -15,15 +12,15 @@ import com.scmt.healthy.entity.TBaseProject;
 import com.scmt.healthy.entity.TPortfolioProject;
 import com.scmt.healthy.mapper.TPortfolioProjectMapper;
 import com.scmt.healthy.service.ITPortfolioProjectService;
-import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
-import java.util.LinkedHashMap;
-import java.util.List;
+import javax.servlet.http.HttpServletResponse;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * @author
@@ -61,6 +58,7 @@ public class TPortfolioProjectServiceImpl extends ServiceImpl<TPortfolioProjectM
             queryWrapper.and(i -> i.isNull("parent_id").or().eq("parent_id", ""));
         }
         queryWrapper.eq("del_flag", 0);
+        queryWrapper.orderByAsc("order_num");
         IPage<TPortfolioProject> result = tPortfolioProjectMapper.selectPage(pageData, queryWrapper);
 //        if (result != null && result.getRecords() != null && result.getRecords().size() > 0) {
 //            QueryWrapper<TPortfolioProject> wrapper = new QueryWrapper<>();
@@ -127,6 +125,15 @@ public class TPortfolioProjectServiceImpl extends ServiceImpl<TPortfolioProjectM
         List<TPortfolioProject> list = tPortfolioProjectMapper.selectList(queryWrapper);
         return list;
     }
+
+    @Override
+    public List<TPortfolioProject> getProjectData(String id) {
+        QueryWrapper<TPortfolioProject> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("t_combo.id",id);
+        List<TPortfolioProject> projectData = tPortfolioProjectMapper.getProjectData(queryWrapper);
+        return projectData;
+    }
+
     /**
      * 功能描述：构建模糊查询
      *
@@ -184,7 +191,15 @@ public class TPortfolioProjectServiceImpl extends ServiceImpl<TPortfolioProjectM
             }
         }
         queryWrapper.lambda().and(i -> i.eq(TPortfolioProject::getDelFlag, 0));
+        queryWrapper.orderByAsc("order_num");
         return queryWrapper;
 
+    }
+    @Override
+    public List<TPortfolioProject> getProjectList(List<Object> id) {
+        QueryWrapper<TPortfolioProject> queryWrapper = new QueryWrapper<>();
+        queryWrapper.in("t_combo.id",id);
+        List<TPortfolioProject> projectData = tPortfolioProjectMapper.getProjectData(queryWrapper);
+        return projectData;
     }
 }

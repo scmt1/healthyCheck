@@ -63,6 +63,9 @@ public class TOrderGroupItemProjectController {
     @Autowired
     private ITGroupPersonService tGroupPersonService;
 
+    @Autowired
+    private ITReviewPersonService itReviewPersonService;
+
     /**
      * 功能描述：新增体检项目数据
      *
@@ -195,7 +198,13 @@ public class TOrderGroupItemProjectController {
     @GetMapping("queryNoCheckTOrderGroupItemProjectList")
     public Result<Object> queryNoCheckTOrderGroupItemProjectList(@RequestParam(name = "personId") String personId, @RequestParam(name = "groupId") String groupId) {
         try {
-            List<TOrderGroupItem> result = tOrderGroupItemProjectService.queryNoCheckTOrderGroupItemProjectList(personId, groupId);
+            List<TOrderGroupItem> result = new ArrayList<>();
+            TReviewPerson tReviewPerson = itReviewPersonService.getById(personId);
+            Boolean isUpdate = false;
+            if(tReviewPerson==null){
+                result = tOrderGroupItemProjectService.queryNoCheckTOrderGroupItemProjectList(personId, groupId);
+                isUpdate = true;
+            }
             List<TReviewProject> tReviewProjects = tReviewProjectService.queryNoCheckReviewProject(personId);
             TGroupPerson tGroupPerson = tGroupPersonService.getById(personId);
 
@@ -206,7 +215,7 @@ public class TOrderGroupItemProjectController {
                 tOrderGroupItem.setName(tReviewProject.getName());
                 result.add(tOrderGroupItem);
             }
-            if(tGroupPerson != null && ("职业体检".equals(tGroupPerson.getPhysicalType()) || "放射体检".equals(tGroupPerson.getPhysicalType())) && tGroupPerson.getIsWzCheck() != null && tGroupPerson.getIsWzCheck() == 0){
+            if(isUpdate && tGroupPerson != null && ("职业体检".equals(tGroupPerson.getPhysicalType()) || "放射体检".equals(tGroupPerson.getPhysicalType())) && tGroupPerson.getIsWzCheck() != null && tGroupPerson.getIsWzCheck() == 0){
                 TOrderGroupItem tOrderGroupItem = new TOrderGroupItem();
                 tOrderGroupItem.setOfficeId("1454369800754171904");
                 tOrderGroupItem.setOfficeName("问诊科");
@@ -276,7 +285,7 @@ public class TOrderGroupItemProjectController {
     @ApiOperation("获取选中的基础项目")
     @GetMapping("/getSelectedBaseItemByItemId")
     public Result<Object> getSelectedBaseItemByItemId(String itemId, String personId, String portfolioId, String groupId) {
-        if (StringUtils.isBlank(itemId) && StringUtils.isBlank(personId)) {
+        if (StringUtils.isBlank(itemId) && personId!=null && StringUtils.isBlank(personId)) {
             return ResultUtil.error("参数为空，请联系管理员！！");
         }
         try {
@@ -296,7 +305,14 @@ public class TOrderGroupItemProjectController {
 
             if (list.size() > 0) {
                 //获取规则
-                TGroupPerson byId = personService.getById(personId);
+                TReviewPerson tReviewPerson = itReviewPersonService.getById(personId);
+                String personIdNow = "";
+                if(tReviewPerson!=null && tReviewPerson.getFirstPersonId()!=null && StringUtils.isNotBlank(tReviewPerson.getFirstPersonId())){
+                    personIdNow = tReviewPerson.getFirstPersonId();
+                }else{
+                    personIdNow = personId;
+                }
+                TGroupPerson byId = personService.getById(personIdNow);
                 String sex = byId.getSex();
                 Integer age = byId.getAge();
 

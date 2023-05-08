@@ -1,17 +1,18 @@
 package com.scmt.healthy.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
-import java.time.LocalDateTime;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
-import java.io.Serializable;
-import java.util.Date;
-
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.springframework.format.annotation.DateTimeFormat;
+
+import java.io.Serializable;
+import java.util.Date;
+import java.util.List;
 
 /**
  * <p>
@@ -23,7 +24,7 @@ import org.springframework.format.annotation.DateTimeFormat;
  */
 @Data
 @EqualsAndHashCode(callSuper = false)
-@ApiModel(value="TInspectionRecord对象", description="")
+@ApiModel(value="TInspectionRecord对象", description="总检结论表")
 public class TInspectionRecord implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -117,4 +118,50 @@ public class TInspectionRecord implements Serializable {
 
     @ApiModelProperty(value = "是否复查")
     private Integer isRecheck;
+
+    @ApiModelProperty(value = "复查总检日期")
+    @JsonFormat(timezone = "GMT+8", pattern = "yyyy-MM-dd HH:mm:ss")
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
+    private Date reviewInspectDate;
+
+    @ApiModelProperty(value = "复查结论编码")
+    private String reviewResultCode;
+
+    @ApiModelProperty(value = "复查建议")
+    private String reviewOpinion;
+
+    @ApiModelProperty(value = "危害因素结论")
+    @TableField(exist = false)
+    private List<TdTjBadrsns> bairns;
+
+    @ApiModelProperty(value = "阳性结果")
+    @TableField(exist = false)
+    private List<TPositivePerson> positiveResultData;
+
+    @ApiModelProperty(value = "疾病诊断")
+    @TableField(exist = false)
+    private TDiseaseDiagnosis tDiseaseDiagnosis;
+
+    @ApiModelProperty(value = "疾病诊断")
+    @TableField(exist = false)
+    private String tDiseaseDiagnosisString;
+
+    @ApiModelProperty(value = "登记号码")
+    @TableField(exist = false)
+    private String  registrationNumber;
+
+    @ApiModelProperty(value = "证件号码")
+    @TableField(exist = false)
+    private String  idCard;
+
+    @ApiModelProperty(value = "证件号码")
+    @TableField(exist = false)
+    private String  physicalExaminationId;
+
+    @ApiModelProperty(value = "排序")
+    @TableField(exist = false)
+    private String  rowno;
+
+
+
 }

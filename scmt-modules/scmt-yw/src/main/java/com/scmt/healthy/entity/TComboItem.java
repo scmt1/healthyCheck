@@ -125,4 +125,8 @@ public class TComboItem implements Serializable {
 
     @ApiModelProperty(value = "项目类型 1必检项目 2选检项目")
     private Integer projectType = 1;
+
+    @ApiModelProperty(value = "检查部位名称")
+    @TableField(exist = false)
+    private String deptName;
 }

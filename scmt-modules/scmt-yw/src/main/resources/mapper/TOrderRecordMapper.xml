@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.scmt.healthy.mapper.TOrderRecordMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.scmt.healthy.entity.TOrderRecord">
+        <id column="id" property="id" />
+        <result column="check_org_id" property="checkOrgId" />
+        <result column="person_id" property="personId" />
+        <result column="group_order_id" property="groupOrderId"/>
+        <result column="combo_id" property="comboId"/>
+        <result column="combo_name" property="comboName"/>
+        <result column="order_status" property="orderStatus" />
+        <result column="check_status" property="checkStatus" />
+        <result column="order_date" property="orderDate" />
+        <result column="create_by" property="createBy" />
+        <result column="create_time" property="createTime" />
+        <result column="update_by" property="updateBy" />
+        <result column="update_time" property="updateTime"/>
+        <result column="del_flag" property="delFlag" />
+        <result column="status" property="status" />
+        <result column="type" property="type" />
+        <result column="code" property="code" />
+    </resultMap>
+
+    <resultMap id="relationShipQueryResultMap" type="com.scmt.healthy.entity.TOrderRecord" extends="BaseResultMap">
+        <association property="tCheckOrg" fetchType="lazy" column="check_org_id" select="selectCheckOrgByOrgId" javaType="com.scmt.healthy.entity.TCheckOrg"/>
+        <association property="tGroupPerson" fetchType="lazy" column="person_id" select="selectPersonInfoByPersonId" javaType="com.scmt.healthy.entity.TGroupPerson"/>
+    </resultMap>
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, check_org_id, person_id,group_order_id,combo_id,combo_name, order_status, check_status, order_date,create_by, create_time, update_by, update_time, del_flag, status, type, code
+    </sql>
+
+    <select id="selectRecordInfoPage" resultMap="relationShipQueryResultMap">
+        SELECT
+            <include refid="Base_Column_List"></include>
+        FROM
+            t_order_record
+        <where>
+            t_order_record.person_id IN(
+                SELECT
+                    id
+                FROM
+                    t_group_person
+                <where>
+                    <if test="personName != null and personName != ''">
+                        AND person_name LIKE CONCAT('%',#{personName},'%')
+                    </if>
+                    <if test="physicalType != null and physicalType != ''">
+                        AND physical_type = #{physicalType}
+                    </if>
+                    <if test="checkDate != null and checkDate != ''">
+                        AND check_date LIKE CONCAT('%',#{checkDate},'%')
+                    </if>
+                    <if test="isPass != null and isPass != ''">
+                        AND is_pass =#{isPass}
+                    </if>
+                </where>
+            )
+           <if test="ew != null">
+               AND ${ew.sqlSegment}
+           </if>
+        </where>
+    </select>
+
+    <select id="selectCheckOrgByOrgId" parameterType="String" resultType="com.scmt.healthy.entity.TCheckOrg">
+        SELECT
+            t_check_org.id,
+            t_check_org.name
+        FROM
+            t_check_org
+        WHERE id = #{checkOrgId}
+        AND del_flag = 0
+    </select>
+
+    <select id="selectPersonInfoByPersonId" parameterType="String" resultType="com.scmt.healthy.entity.TGroupPerson">
+        SELECT
+            t_group_person.id,
+            t_group_person.person_name,
+            t_group_person.id_card,
+            t_group_person.sex,
+            t_group_person.dept,
+            t_group_person.age,
+            t_group_person.mobile,
+            t_group_person.test_num,
+            t_group_person.is_pass,
+            t_group_person.is_check,
+            t_group_person.statu,
+            t_group_person.physical_type,
+            t_group_person.check_date,
+            t_group_person.nation
+        FROM
+            t_group_person
+        WHERE id = #{personId}
+        AND del_flag = 0
+    </select>
+    <select id="selectTComboItemName" parameterType="String" resultType="String">
+        SELECT
+	        `name`
+        FROM
+	        t_portfolio_project
+        WHERE
+	        id IN ( SELECT portfolio_project_id FROM t_combo_item WHERE combo_id = #{comboId} );
+    </select>
+
+    <select id="selectOrderInfoByPhone" resultType="com.scmt.healthy.entity.TOrderRecord">
+        SELECT
+            t_order_record.check_org_id,
+            t_order_record.person_id,
+            t_order_record.combo_id
+        FROM
+            t_order_record
+        WHERE
+            t_order_record.person_id IN (
+                SELECT
+                    id
+                FROM
+                    t_group_person
+                WHERE  mobile = #{mobile}
+            )
+    </select>
+
+    <select id="selectOrderRecordByOrderId" parameterType="String" resultType="com.scmt.healthy.entity.TOrderRecord">
+        SELECT
+            id,
+            check_org_id,
+            person_id,
+            combo_name
+        FROM
+            t_order_record
+        WHERE
+	        group_order_id = #{orderId}
+	    AND del_flag = 0
+    </select>
+
+    <select id="selectComboByName" parameterType="String" resultType="com.scmt.healthy.entity.TCombo">
+        SELECT
+            id
+        FROM
+            t_combo
+        WHERE
+            name = #{name};
+    </select>
+
+    <select id="selectOrderRecordInfoByMobileAndIsPass" resultType="com.scmt.healthy.entity.TOrderRecord">
+        SELECT
+            id,
+            check_org_id,
+            person_id,
+            combo_name,
+            group_order_id
+        FROM
+	        t_order_record
+        WHERE
+	        person_id IN (
+	            SELECT
+		            id
+	            FROM
+		            t_group_person
+		        <where>
+		            mobile = #{mobile}
+		            <if test="isPass != null and isPass != ''">
+		                AND is_pass = #{isPass}
+                    </if>
+                </where>
+	        )
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="selectRecordCountByIdCardAndCheckDateAndCheckOrgId" resultType="Integer">
+        SELECT
+	        COUNT(*)
+        FROM
+	        t_order_record
+        WHERE
+	        person_id IN (
+	        SELECT
+	            id
+	        FROM
+	            t_group_person
+	        WHERE id_card = #{idCard}
+	        AND check_date LIKE CONCAT('%',#{checkDate},'%')
+	        AND del_flag = 0
+	        )
+	AND check_org_id = #{checkOrgId}
+	AND del_flag = 0
+    </select>
+</mapper>

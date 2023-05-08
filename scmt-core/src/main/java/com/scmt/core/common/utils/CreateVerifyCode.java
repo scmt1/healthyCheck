@@ -151,7 +151,7 @@ public class CreateVerifyCode {
         Graphics g = buffImg.getGraphics();
         //Graphics2D g = buffImg.createGraphics();
         // 设置背景色
-        g.setColor(getRandColor(200, 250));
+        g.setColor(getRandColor(240, 250));
         g.fillRect(0, 0, width, height);
 
         // 设置字体
@@ -160,14 +160,14 @@ public class CreateVerifyCode {
         g.setFont(font);
 
         // 设置干扰线
-        for (int i = 0; i < lineCount; i++) {
+/*        for (int i = 0; i < lineCount; i++) {
             int xs = random.nextInt(width);
             int ys = random.nextInt(height);
             int xe = xs + random.nextInt(width);
             int ye = ys + random.nextInt(height);
             g.setColor(getRandColor(1, 255));
             g.drawLine(xs, ys, xe, ye);
-        }
+        }*/
 
         // 添加噪点 噪声率
         float yawpRate = 0.01f;
@@ -182,7 +182,7 @@ public class CreateVerifyCode {
         this.code = code;
         for (int i = 0; i < code.length(); i++) {
             String strRand = code.substring(i, i + 1);
-            g.setColor(getRandColor(1, 255));
+            g.setColor(new Color(0+random.nextInt(100),0+random.nextInt(100),255));
             // g.drawString(a,x,y);
             // a为要画出来的东西，x和y表示要画的东西最左侧字符的基线位于此图形上下文坐标系的 (x, y) 位置处
             g.drawString(strRand, i * fontWidth + 3, codeY);

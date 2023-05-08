@@ -1,47 +1,40 @@
 package com.scmt.healthy.controller;
 
-import java.io.*;
+import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.core.toolkit.StringUtils;
+import com.scmt.core.common.annotation.SystemLog;
+import com.scmt.core.common.enums.LogType;
+import com.scmt.core.common.utils.ResultUtil;
+import com.scmt.core.common.utils.SecurityUtil;
+import com.scmt.core.common.vo.PageVo;
+import com.scmt.core.common.vo.Result;
+import com.scmt.core.common.vo.SearchVo;
+import com.scmt.core.entity.User;
+import com.scmt.core.service.UserService;
+import com.scmt.healthy.common.SocketConfig;
+import com.scmt.healthy.entity.*;
+import com.scmt.healthy.service.*;
+import com.scmt.healthy.utils.BASE64DecodedMultipartFile;
+import com.scmt.healthy.utils.DocUtil;
+import com.scmt.healthy.utils.PdfUtil;
+import com.scmt.healthy.utils.UploadFileUtils;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import org.apache.commons.io.FileUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import javax.servlet.http.HttpServletResponse;
+import javax.transaction.Transactional;
+import java.io.File;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
-
-import com.alibaba.fastjson.JSONObject;
-import com.aspose.words.SaveFormat;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.scmt.core.common.utils.ResultUtil;
-import com.scmt.core.common.utils.SecurityUtil;
-import com.scmt.core.entity.User;
-import com.scmt.core.service.UserService;
-import com.scmt.core.utis.FileUtil;
-import com.scmt.healthy.entity.*;
-import com.scmt.healthy.service.*;
-
-import javax.servlet.http.HttpServletResponse;
-import javax.transaction.Transactional;
-
-import com.scmt.healthy.utils.DocUtil;
-import com.scmt.healthy.utils.PdfUtil;
-import com.scmt.healthy.utils.UploadFileUtils;
-import org.apache.commons.math3.stat.descriptive.summary.Product;
-import org.springframework.transaction.interceptor.TransactionAspectSupport;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.beans.factory.annotation.Autowired;
-import com.scmt.core.common.vo.PageVo;
-import com.scmt.core.common.vo.Result;
-import com.scmt.core.common.vo.SearchVo;
-import com.scmt.core.common.annotation.SystemLog;
-import com.baomidou.mybatisplus.core.toolkit.StringUtils;
-import com.scmt.core.common.enums.LogType;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import org.springframework.web.multipart.MultipartFile;
 
 /**
  * @author
@@ -71,6 +64,8 @@ public class TGroupOrderController {
     @Autowired
     private ITGroupPersonService itGroupPersonService;
     @Autowired
+    private ITReviewPersonService itReviewPersonService;
+    @Autowired
     private ITGroupPersonService tGroupPersonService;
 
     @Autowired
@@ -93,6 +88,9 @@ public class TGroupOrderController {
 
     @Autowired
     private ITOrderGroupService tOrderGroupService;
+
+    @Autowired
+    public SocketConfig socketConfig;
 
     /**
      * 功能描述：新增团检订单数据
@@ -127,7 +125,11 @@ public class TGroupOrderController {
             TGroupOrder one = tGroupOrderService.getOneByWhere(securityUtil.getCurrUser().getDepartmentId());
             String orderCode = "";
             if (one == null) {
-                orderCode = dateFormat.format(new Date());
+                if(socketConfig.getUpdateCreateMethd()){
+                    orderCode = "6" + dateFormat.format(new Date());
+                }else{
+                    orderCode = dateFormat.format(new Date());
+                }
                 orderCode += "0001";
             } else {
                 String substring = one.getOrderCode().substring(one.getOrderCode().length() - 4);
@@ -141,7 +143,11 @@ public class TGroupOrderController {
                 } else if (code.length() == 3) {
                     code = "0" + code;
                 }
-                orderCode = dateFormat.format(new Date());
+                if(socketConfig.getUpdateCreateMethd()){
+                    orderCode = "6" + dateFormat.format(new Date());
+                }else{
+                    orderCode = dateFormat.format(new Date());
+                }
                 orderCode += code;
             }
             tGroupOrder.setOrderCode(orderCode);
@@ -270,7 +276,11 @@ public class TGroupOrderController {
             TGroupOrder one = tGroupOrderService.getOneByWhere(usernNow.getDepartmentId());
             String orderCode = "";
             if (one == null) {
-                orderCode = dateFormat.format(new Date());
+                if(socketConfig.getUpdateCreateMethd()){
+                    orderCode = "6" + dateFormat.format(new Date());
+                }else{
+                    orderCode = dateFormat.format(new Date());
+                }
                 orderCode += "0001";
             } else {
                 String substring = one.getOrderCode().substring(one.getOrderCode().length() - 4);
@@ -284,7 +294,11 @@ public class TGroupOrderController {
                 } else if (code.length() == 3) {
                     code = "0" + code;
                 }
-                orderCode = dateFormat.format(new Date());
+                if(socketConfig.getUpdateCreateMethd()){
+                    orderCode = "6" + dateFormat.format(new Date());
+                }else{
+                    orderCode = dateFormat.format(new Date());
+                }
                 orderCode += code;
             }
             tGroupOrder.setOrderCode(orderCode);
@@ -454,7 +468,11 @@ public class TGroupOrderController {
             TGroupOrder one = tGroupOrderService.getOneByWhere(securityUtil.getCurrUser().getDepartmentId());
             String orderCode = "";
             if (one == null) {
-                orderCode = dateFormat.format(new Date());
+                if(socketConfig.getUpdateCreateMethd()){
+                    orderCode = "6" + dateFormat.format(new Date());
+                }else{
+                    orderCode = dateFormat.format(new Date());
+                }
                 orderCode += "0001";
             } else {
                 String substring = one.getOrderCode().substring(one.getOrderCode().length() - 4);
@@ -468,7 +486,11 @@ public class TGroupOrderController {
                 } else if (code.length() == 3) {
                     code = "0" + code;
                 }
-                orderCode = dateFormat.format(new Date());
+                if(socketConfig.getUpdateCreateMethd()){
+                    orderCode = "6" + dateFormat.format(new Date());
+                }else{
+                    orderCode = dateFormat.format(new Date());
+                }
                 orderCode += code;
             }
             tGroupOrder.setOrderCode(orderCode);
@@ -483,8 +505,31 @@ public class TGroupOrderController {
                         groupDatum.setCreateTime(new Date());
                         boolean save = itOrderGroupService.save(groupDatum);
                         if (save) {
-                            TGroupPerson groupPerson;
+                            TGroupPerson groupPerson ;
                             groupPerson = tGroupOrder.getGroupPerson();
+                            if (tGroupOrder.getGroupPerson().getAvatar() != null && StringUtils.isNotBlank(tGroupOrder.getGroupPerson().getAvatar().toString())&&tGroupOrder.getGroupPerson().getAvatar().toString().indexOf("data:image")>-1 ) {
+                                MultipartFile imgFile = BASE64DecodedMultipartFile.base64ToMultipart(tGroupOrder.getGroupPerson().getAvatar().toString());
+                                String classPath = DocUtil.getClassPath().split(":")[0];
+                                //时间戳
+                                SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHHmmss");
+                                String DataStr = format.format(new Date());
+                                if(tGroupOrder.getGroupPerson().getTestNum()!=null && tGroupOrder.getGroupPerson().getTestNum().trim().length() > 0){
+                                    DataStr = tGroupOrder.getGroupPerson().getTestNum();
+                                }
+                                String name = imgFile.getOriginalFilename();
+                                File file1 = new File(classPath+":" + UploadFileUtils.basePath +"dcm/avatar/" + DataStr + "/" + name);
+                                //存在则删除
+                                if(file1.isFile() && file1.exists()){
+                                    file1.delete();
+                                    file1 = new File(classPath+":" + UploadFileUtils.basePath +"dcm/avatar/" + DataStr + "/" + name);
+                                }
+                                FileUtils.writeByteArrayToFile(file1,imgFile.getBytes());
+                                String url = "/tempFileUrl/tempfile/dcm/avatar/" + DataStr + "/" + name;
+                                groupPerson.setAvatar(url);
+                            }
+                            else{
+                                groupPerson.setAvatar(null);
+                            }
                             groupPerson.setOrderId(tGroupOrder.getId());
                             groupPerson.setGroupId(groupDatum.getId());
                             groupPerson.setIsPass(1);
@@ -575,96 +620,230 @@ public class TGroupOrderController {
                 if (groupDatum.getProjectData() == null || groupDatum.getProjectData().size() < 1) {
                     return ResultUtil.error("“" + groupDatum.getName() + "”分组体检项目不能为空！");
                 }
-                if (groupDatum.getPersonCount() == null || groupDatum.getPersonCount() < 1) {
-                    return ResultUtil.error("“" + groupDatum.getName() + "”分组体检人数不能为空！");
+                if (!tGroupOrder.getTolerable()){
+                    if (groupDatum.getPersonCount() == null || groupDatum.getPersonCount() < 1) {
+                        return ResultUtil.error("“" + groupDatum.getName() + "”分组体检人数不能为空！");
+                    }
                 }
-
             }
             tGroupOrder.setUpdateId(securityUtil.getCurrUser().getId());
             tGroupOrder.setUpdateTime(new Date());
             boolean res = tGroupOrderService.updateById(tGroupOrder);
             if (res) {
-                //删除订单分组
-                QueryWrapper<TOrderGroup> groupQueryWrapper = new QueryWrapper<>();
-                groupQueryWrapper.eq("group_order_id", tGroupOrder.getId());
-                groupQueryWrapper.select("id");
-                List<TOrderGroup> tOrderGroupList =   itOrderGroupService.list(groupQueryWrapper);
-                List<String> courseIds=  tOrderGroupList.stream().map(TOrderGroup::getId).collect(Collectors.toList());
-                List<String> Ids=  tGroupOrder.getGroupData().stream().map(TOrderGroup::getId).collect(Collectors.toList());
-                courseIds.removeAll(Ids);
-                itOrderGroupService.removeByIds(courseIds);
-                //删除分组项目
-                QueryWrapper<TOrderGroupItem> groupItemQueryWrapper = new QueryWrapper<>();
-                groupItemQueryWrapper.eq("group_order_id", tGroupOrder.getId());
-                itOrderGroupItemService.remove(groupItemQueryWrapper);
-                //删除分组项目子项目
-                QueryWrapper<TOrderGroupItemProject> groupItemProjectQueryWrapper = new QueryWrapper<>();
-                groupItemProjectQueryWrapper.eq("group_order_id", tGroupOrder.getId());
-                itOrderGroupItemProjectService.remove(groupItemProjectQueryWrapper);
-                //保存订单分组信息
-                List<RelationBasePortfolio> relationBasePortfolioList = iRelationBasePortfolioService.list();
-                List<TBaseProject> tBaseProjectList = itBaseProjectService.list();
-                for (TOrderGroup groupDatum : tGroupOrder.getGroupData()) {
-                    if(StringUtils.isBlank(groupDatum.getId())){
-                        groupDatum.setId(UUID.randomUUID().toString().replaceAll("-", ""));
-                    }
-                    groupDatum.setGroupOrderId(tGroupOrder.getId());
-                    groupDatum.setDelFlag(0);
-                    groupDatum.setCreateId(securityUtil.getCurrUser().getId());
-                    groupDatum.setCreateTime(new Date());
-                    boolean flag = itOrderGroupService.saveOrUpdate(groupDatum);
-                    if (flag) {
-                        if (groupDatum.getProjectData() != null && groupDatum.getProjectData().size() > 0) {
-                            for (TOrderGroupItem projectDatum : groupDatum.getProjectData()) {
-                                //保存分组项目
-                                projectDatum.setId(UUID.randomUUID().toString().replaceAll("-", ""));
-                                projectDatum.setCreateId(securityUtil.getCurrUser().getId());
-                                projectDatum.setCreateTime(new Date());
-                                projectDatum.setDelFlag(0);
-                                projectDatum.setGroupId(groupDatum.getId());
-                                projectDatum.setGroupOrderId(tGroupOrder.getId());
-                                boolean save1 = itOrderGroupItemService.save(projectDatum);
-                                if (save1) {
-                                    //保存分组项目的子项目
-                                    List<RelationBasePortfolio> collect = relationBasePortfolioList.stream()
-                                            .filter(item -> item.getPortfolioProjectId().equals(projectDatum.getPortfolioProjectId()))
-                                            .collect(Collectors.toList());
-                                    ArrayList<TOrderGroupItemProject> projectArrayList = new ArrayList<>();
-                                    for (RelationBasePortfolio relationBasePortfolio : collect) {
-                                        TBaseProject tBaseProject = tBaseProjectList.stream().filter(item -> item.getId().equals(relationBasePortfolio.getBaseProjectId())).findFirst().orElse(null);
-                                        if(tBaseProject != null) {
-                                            List<TOrderGroupItemProject> collect1 =
-                                                    projectArrayList.stream().filter(item -> item.getTOrderGroupItemId().equals(projectDatum.getId())
-                                                            && item.getBaseProjectId().equals(tBaseProject.getId())).collect(Collectors.toList());
-                                            if (collect1.size() > 0) {
-                                                continue;
+                //判断订单下是否有人且已登记，是就不删除订单分组及项目
+                QueryWrapper<TGroupPerson> personQueryWrapper = new QueryWrapper<>();
+                personQueryWrapper.eq("order_id",tGroupOrder.getId());
+                personQueryWrapper.ge("is_pass",2);
+                Integer countPerson =  tGroupPersonService.count(personQueryWrapper);
+                if(countPerson==0){//先删除再创建
+                    //删除订单分组
+                    QueryWrapper<TOrderGroup> groupQueryWrapper = new QueryWrapper<>();
+                    groupQueryWrapper.eq("group_order_id", tGroupOrder.getId());
+                    groupQueryWrapper.select("id");
+                    List<TOrderGroup> tOrderGroupList =   itOrderGroupService.list(groupQueryWrapper);
+                    List<String> courseIds=  tOrderGroupList.stream().map(TOrderGroup::getId).collect(Collectors.toList());
+                    List<String> Ids=  tGroupOrder.getGroupData().stream().map(TOrderGroup::getId).collect(Collectors.toList());
+                    courseIds.removeAll(Ids);
+                    itOrderGroupService.removeByIds(courseIds);
+                    //删除分组项目
+                    QueryWrapper<TOrderGroupItem> groupItemQueryWrapper = new QueryWrapper<>();
+                    groupItemQueryWrapper.eq("group_order_id", tGroupOrder.getId());
+                    itOrderGroupItemService.remove(groupItemQueryWrapper);
+                    //删除分组项目子项目
+                    QueryWrapper<TOrderGroupItemProject> groupItemProjectQueryWrapper = new QueryWrapper<>();
+                    groupItemProjectQueryWrapper.eq("group_order_id", tGroupOrder.getId());
+                    itOrderGroupItemProjectService.remove(groupItemProjectQueryWrapper);
+                    //保存订单分组信息
+                    List<RelationBasePortfolio> relationBasePortfolioList = iRelationBasePortfolioService.list();
+                    List<TBaseProject> tBaseProjectList = itBaseProjectService.list();
+                    for (TOrderGroup groupDatum : tGroupOrder.getGroupData()) {
+                        if(StringUtils.isBlank(groupDatum.getId())){
+                            groupDatum.setId(UUID.randomUUID().toString().replaceAll("-", ""));
+                        }
+                        groupDatum.setGroupOrderId(tGroupOrder.getId());
+                        groupDatum.setDelFlag(0);
+                        groupDatum.setCreateId(securityUtil.getCurrUser().getId());
+                        groupDatum.setCreateTime(new Date());
+                        boolean flag = itOrderGroupService.saveOrUpdate(groupDatum);
+                        if (flag) {
+                            if (groupDatum.getProjectData() != null && groupDatum.getProjectData().size() > 0) {
+                                for (TOrderGroupItem projectDatum : groupDatum.getProjectData()) {
+                                    //保存分组项目
+                                    projectDatum.setId(UUID.randomUUID().toString().replaceAll("-", ""));
+                                    projectDatum.setCreateId(securityUtil.getCurrUser().getId());
+                                    projectDatum.setCreateTime(new Date());
+                                    projectDatum.setDelFlag(0);
+                                    projectDatum.setGroupId(groupDatum.getId());
+                                    projectDatum.setGroupOrderId(tGroupOrder.getId());
+                                    boolean save1 = itOrderGroupItemService.save(projectDatum);
+                                    if (save1) {
+                                        //保存分组项目的子项目
+                                        List<RelationBasePortfolio> collect = relationBasePortfolioList.stream()
+                                                .filter(item -> item.getPortfolioProjectId().equals(projectDatum.getPortfolioProjectId()))
+                                                .collect(Collectors.toList());
+                                        ArrayList<TOrderGroupItemProject> projectArrayList = new ArrayList<>();
+                                        for (RelationBasePortfolio relationBasePortfolio : collect) {
+                                            TBaseProject tBaseProject = tBaseProjectList.stream().filter(item -> item.getId().equals(relationBasePortfolio.getBaseProjectId())).findFirst().orElse(null);
+                                            if(tBaseProject != null) {
+                                                List<TOrderGroupItemProject> collect1 =
+                                                        projectArrayList.stream().filter(item -> item.getTOrderGroupItemId().equals(projectDatum.getId())
+                                                                && item.getBaseProjectId().equals(tBaseProject.getId())).collect(Collectors.toList());
+                                                if (collect1.size() > 0) {
+                                                    continue;
+                                                }
+                                                TOrderGroupItemProject tOrderGroupItemProject = new TOrderGroupItemProject();
+                                                tOrderGroupItemProject.setTOrderGroupItemId(projectDatum.getId());
+                                                tOrderGroupItemProject.setCode(tBaseProject.getCode());
+                                                tOrderGroupItemProject.setName(tBaseProject.getName());
+                                                tOrderGroupItemProject.setShortName(tBaseProject.getShortName());
+                                                tOrderGroupItemProject.setOrderNum(tBaseProject.getOrderNum());
+                                                tOrderGroupItemProject.setOfficeId(tBaseProject.getOfficeId());
+                                                tOrderGroupItemProject.setUnitCode(tBaseProject.getUnitCode());
+                                                tOrderGroupItemProject.setUnitName(tBaseProject.getUnitName());
+                                                tOrderGroupItemProject.setDefaultValue(tBaseProject.getDefaultValue());
+                                                tOrderGroupItemProject.setResultType(tBaseProject.getResultType());
+                                                tOrderGroupItemProject.setInConclusion(tBaseProject.getInConclusion());
+                                                tOrderGroupItemProject.setInReport(tBaseProject.getInReport());
+                                                tOrderGroupItemProject.setRelationCode(tBaseProject.getRelationCode());
+                                                tOrderGroupItemProject.setGroupOrderId(tGroupOrder.getId());
+                                                tOrderGroupItemProject.setBaseProjectId(tBaseProject.getId());
+                                                projectArrayList.add(tOrderGroupItemProject);
                                             }
-                                            TOrderGroupItemProject tOrderGroupItemProject = new TOrderGroupItemProject();
-                                            tOrderGroupItemProject.setTOrderGroupItemId(projectDatum.getId());
-                                            tOrderGroupItemProject.setCode(tBaseProject.getCode());
-                                            tOrderGroupItemProject.setName(tBaseProject.getName());
-                                            tOrderGroupItemProject.setShortName(tBaseProject.getShortName());
-                                            tOrderGroupItemProject.setOrderNum(tBaseProject.getOrderNum());
-                                            tOrderGroupItemProject.setOfficeId(tBaseProject.getOfficeId());
-                                            tOrderGroupItemProject.setUnitCode(tBaseProject.getUnitCode());
-                                            tOrderGroupItemProject.setUnitName(tBaseProject.getUnitName());
-                                            tOrderGroupItemProject.setDefaultValue(tBaseProject.getDefaultValue());
-                                            tOrderGroupItemProject.setResultType(tBaseProject.getResultType());
-                                            tOrderGroupItemProject.setInConclusion(tBaseProject.getInConclusion());
-                                            tOrderGroupItemProject.setInReport(tBaseProject.getInReport());
-                                            tOrderGroupItemProject.setRelationCode(tBaseProject.getRelationCode());
-                                            tOrderGroupItemProject.setGroupOrderId(tGroupOrder.getId());
-                                            tOrderGroupItemProject.setBaseProjectId(tBaseProject.getId());
-                                            projectArrayList.add(tOrderGroupItemProject);
                                         }
+                                        itOrderGroupItemProjectService.saveBatch(projectArrayList);
                                     }
-                                    itOrderGroupItemProjectService.saveBatch(projectArrayList);
                                 }
                             }
                         }
                     }
+                    return ResultUtil.data(res, "修改成功");
+                }else{//保存订单分组信息
+                    List<RelationBasePortfolio> relationBasePortfolioList = iRelationBasePortfolioService.list();
+                    List<TBaseProject> tBaseProjectList = itBaseProjectService.list();
+                    //保存订单分组信息
+                    for (TOrderGroup groupDatum : tGroupOrder.getGroupData()) {
+                        //分组是否是新增
+                        Boolean isAdd = false;
+                        if(StringUtils.isNotBlank(groupDatum.getId())){
+                            groupDatum.setUpdateId(securityUtil.getCurrUser().getId());
+                            groupDatum.setUpdateTime(new Date());
+                        }
+                        else{
+                            groupDatum.setId(UUID.randomUUID().toString().replaceAll("-", ""));
+                            groupDatum.setGroupOrderId(tGroupOrder.getId());
+                            groupDatum.setDelFlag(0);
+                            groupDatum.setCreateId(securityUtil.getCurrUser().getId());
+                            groupDatum.setCreateTime(new Date());
+                            isAdd = true;
+                        }
+                        Boolean flag = itOrderGroupService.saveOrUpdate(groupDatum);
+                        if (flag) {
+                            //删除选检的分组项目
+                            QueryWrapper<TOrderGroupItem> groupItemQueryWrapper = new QueryWrapper<>();
+                            groupItemQueryWrapper.eq("group_id", groupDatum.getId());
+                            groupItemQueryWrapper.eq("project_type", 2);
+                            groupItemQueryWrapper.eq("del_flag", 0);
+                            List<TOrderGroupItem> groupItems = itOrderGroupItemService.list(groupItemQueryWrapper);
+                            List<String> groupItemProjetIds = new ArrayList<>();
+                            if(groupItems.size()>0){
+                                groupItemProjetIds = groupItems.stream().map(TOrderGroupItem:: getPortfolioProjectId).collect(Collectors.toList());
+                                List<TOrderGroupItem> projectList =  groupDatum.getProjectData();
+                                List<String> groupItemIds =projectList.stream().map(TOrderGroupItem:: getPortfolioProjectId).collect(Collectors.toList());
+                                if(groupItemIds!=null && groupItemIds.size()>0){
+                                    List<String> groupItemIdsDelete = groupItemProjetIds.stream() .filter(currPrivilege ->!groupItemIds.contains(currPrivilege)).collect(Collectors.toList());
+                                    if(groupItemIdsDelete!=null&& groupItemIdsDelete.size()>0){
+                                        List<TOrderGroupItem> projectListDelete = groupItems.stream().filter(ii ->groupItemIdsDelete.contains(ii.getPortfolioProjectId())).collect(Collectors.toList());
+                                        for(TOrderGroupItem groupItemDelete:projectListDelete ){
+                                            QueryWrapper<TDepartResult> tDepartItemResultQueryWrapper = new QueryWrapper<>();
+                                            tDepartItemResultQueryWrapper.eq("del_flag", 0);
+                                            tDepartItemResultQueryWrapper.lambda().in(TDepartResult::getGroupItemId,groupItemDelete.getId());
+                                            int count =  itDepartResultService.count(tDepartItemResultQueryWrapper);
+                                            if(count>0){
+                                                new Exception("分组："+ groupDatum.getName() +" 下的项目 "+ groupItemDelete.getName() +" 已经有人检查了，不能被删除！");
+                                            }
+                                            //选检的分组项目
+                                            QueryWrapper<TOrderGroupItemProject> groupItemProjectQueryWrapper = new QueryWrapper<>();
+                                            groupItemProjectQueryWrapper.eq("group_order_id", tGroupOrder.getId());
+//                                        groupItemProjectQueryWrapper.lambda().in(TOrderGroupItemProject::getTOrderGroupItemId,groupItemIdsDelete);
+                                            groupItemProjectQueryWrapper.eq("t_order_group_item_id",groupItemDelete.getId());
+                                            /*itOrderGroupItemProjectService.remove(groupItemProjectQueryWrapper);*/
+                                            TOrderGroupItemProject tOrderGroupItemProject = new TOrderGroupItemProject();
+                                            tOrderGroupItemProject.setDelFlag(1);
+                                            //逻辑删除选检项目的订单基础项信息
+                                            itOrderGroupItemProjectService.update(tOrderGroupItemProject,groupItemProjectQueryWrapper);
+
+                                            /*itOrderGroupItemService.remove(groupItemQueryWrapper);*/
+                                            //逻辑删除选检项目的订单组合项信息
+                                            groupItemDelete.setDelFlag(1);
+                                            itOrderGroupItemService.updateById(groupItemDelete);
+                                        }
+                                    }
+
+                                }
+
+
+                            }
+                            if (groupDatum.getProjectData() != null && groupDatum.getProjectData().size() > 0) {
+                                for (TOrderGroupItem projectDatum : groupDatum.getProjectData()) {
+                                    //是新添加的或者是选检项目
+                                    if((2 == projectDatum.getProjectType() && !groupItemProjetIds.contains(projectDatum.getPortfolioProjectId()))  || isAdd){
+                                        QueryWrapper<TOrderGroupItem> tOrderGroupItemQueryWrapper = new QueryWrapper<>();
+                                        tOrderGroupItemQueryWrapper.eq("id",projectDatum.getId());
+                                        tOrderGroupItemQueryWrapper.eq("group_id",groupDatum.getId());
+                                        TOrderGroupItem tOrderGroupItem = itOrderGroupItemService.getOne(tOrderGroupItemQueryWrapper);
+                                        if(tOrderGroupItem == null || (tOrderGroupItem!=null && tOrderGroupItem.getGroupId()!=null && groupDatum.getId()!=null && !tOrderGroupItem.getGroupId().equals(groupDatum.getId())) || StringUtils.isBlank(projectDatum.getId())){
+                                            //保存分组项目
+                                            projectDatum.setId(UUID.randomUUID().toString().replaceAll("-", ""));
+                                            projectDatum.setCreateId(securityUtil.getCurrUser().getId());
+                                            projectDatum.setCreateTime(new Date());
+                                            projectDatum.setDelFlag(0);
+                                            projectDatum.setGroupId(groupDatum.getId());
+                                            projectDatum.setGroupOrderId(tGroupOrder.getId());
+                                            boolean save1 = itOrderGroupItemService.save(projectDatum);
+                                            if (save1) {
+                                                //保存分组项目的子项目
+                                                List<RelationBasePortfolio> collect = relationBasePortfolioList.stream()
+                                                        .filter(item -> item.getPortfolioProjectId().equals(projectDatum.getPortfolioProjectId()))
+                                                        .collect(Collectors.toList());
+                                                ArrayList<TOrderGroupItemProject> projectArrayList = new ArrayList<>();
+                                                for (RelationBasePortfolio relationBasePortfolio : collect) {
+                                                    TBaseProject tBaseProject = tBaseProjectList.stream().filter(item -> item.getId().equals(relationBasePortfolio.getBaseProjectId())).findFirst().orElse(null);
+                                                    if(tBaseProject != null) {
+                                                        List<TOrderGroupItemProject> collect1 =
+                                                                projectArrayList.stream().filter(item -> item.getTOrderGroupItemId().equals(projectDatum.getId())
+                                                                        && item.getBaseProjectId().equals(tBaseProject.getId())).collect(Collectors.toList());
+                                                        if (collect1.size() > 0) {
+                                                            continue;
+                                                        }
+                                                        TOrderGroupItemProject tOrderGroupItemProject = new TOrderGroupItemProject();
+                                                        tOrderGroupItemProject.setTOrderGroupItemId(projectDatum.getId());
+                                                        tOrderGroupItemProject.setCode(tBaseProject.getCode());
+                                                        tOrderGroupItemProject.setName(tBaseProject.getName());
+                                                        tOrderGroupItemProject.setShortName(tBaseProject.getShortName());
+                                                        tOrderGroupItemProject.setOrderNum(tBaseProject.getOrderNum());
+                                                        tOrderGroupItemProject.setOfficeId(tBaseProject.getOfficeId());
+                                                        tOrderGroupItemProject.setUnitCode(tBaseProject.getUnitCode());
+                                                        tOrderGroupItemProject.setUnitName(tBaseProject.getUnitName());
+                                                        tOrderGroupItemProject.setDefaultValue(tBaseProject.getDefaultValue());
+                                                        tOrderGroupItemProject.setResultType(tBaseProject.getResultType());
+                                                        tOrderGroupItemProject.setInConclusion(tBaseProject.getInConclusion());
+                                                        tOrderGroupItemProject.setInReport(tBaseProject.getInReport());
+                                                        tOrderGroupItemProject.setRelationCode(tBaseProject.getRelationCode());
+                                                        tOrderGroupItemProject.setGroupOrderId(tGroupOrder.getId());
+                                                        tOrderGroupItemProject.setBaseProjectId(tBaseProject.getId());
+                                                        projectArrayList.add(tOrderGroupItemProject);
+                                                    }
+                                                }
+                                                itOrderGroupItemProjectService.saveBatch(projectArrayList);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    return ResultUtil.data(res, "修改成功");
                 }
-                return ResultUtil.data(res, "修改成功");
             } else {
                 return ResultUtil.error("修改失败");
             }
@@ -697,8 +876,10 @@ public class TGroupOrderController {
                 if (groupDatum.getProjectData() == null || groupDatum.getProjectData().size() < 1) {
                     return ResultUtil.error("“" + groupDatum.getName() + "”分组体检项目不能为空！");
                 }
-                if (groupDatum.getPersonCount() == null || groupDatum.getPersonCount() < 1) {
-                    return ResultUtil.error("“" + groupDatum.getName() + "”分组体检人数不能为空！");
+                if (!tGroupOrder.getTolerable()){
+                    if (groupDatum.getPersonCount() == null || groupDatum.getPersonCount() < 1) {
+                        return ResultUtil.error("“" + groupDatum.getName() + "”分组体检人数不能为空！");
+                    }
                 }
             }
             tGroupOrder.setUpdateId(securityUtil.getCurrUser().getId());
@@ -721,6 +902,19 @@ public class TGroupOrderController {
                         groupDatum.setDelFlag(0);
                         groupDatum.setCreateId(securityUtil.getCurrUser().getId());
                         groupDatum.setCreateTime(new Date());
+                        if(tGroupOrder!=null && StringUtils.isNotBlank(tGroupOrder.getId())){
+                            QueryWrapper<TOrderGroup> queryWrapper = new QueryWrapper<>();
+                            queryWrapper.eq("del_flag",0);
+                            queryWrapper.eq("group_order_id",tGroupOrder.getId());
+                            queryWrapper.orderByDesc("order_num");
+                            queryWrapper.last("limit 1");
+                            TOrderGroup tOrderGroup = itOrderGroupService.getOne(queryWrapper);
+                            if(tOrderGroup!=null && tOrderGroup.getOrderNum()!=null){
+                                groupDatum.setOrderNum(tOrderGroup.getOrderNum()+1);
+                            }else{
+                                groupDatum.setOrderNum(0);
+                            }
+                        }
                         isAdd = true;
                     }
                     Boolean flag = itOrderGroupService.saveOrUpdate(groupDatum);
@@ -1336,7 +1530,7 @@ public class TGroupOrderController {
      */
     @ApiOperation("订单合并")
     @PostMapping("consolidatedOrder")
-    @Transactional(rollbackOn = Exception.class)
+    @Transactional(rollbackOn = { Exception.class })
     public Result<Object> consolidatedOrder(@RequestParam String[] ids) {
         if (ids == null || ids.length == 0) {
             return ResultUtil.error("参数为空，请联系管理员！！");
@@ -1378,46 +1572,97 @@ public class TGroupOrderController {
                                 queryWrapperDelete.eq("order_id", id);
                                 queryWrapperDelete.in("id_card",idCards);
                                 queryWrapperDelete.eq("is_pass",1);
-                                itGroupPersonService.update(tGroupPerson, queryWrapperDelete);
+                                List<TGroupPerson> tGroupPersonLists = itGroupPersonService.list(queryWrapperDelete);
+                                if(tGroupPersonLists!=null && tGroupPersonLists.size()>0){
+                                    boolean resU = itGroupPersonService.update(tGroupPerson, queryWrapperDelete);
+                                    if(!resU){
+                                        //手工回滚异常
+                                        TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                                        return ResultUtil.error("合并失败");
+                                    }
+                                }
                             }
 
                         }
 
+                        //人员表相关更改
                         //更改订单对应的人员信息
                         QueryWrapper<TGroupPerson> queryWrapper = new QueryWrapper<>();
                         queryWrapper.eq("order_id", id);
-                        TGroupPerson tGroupPerson = new TGroupPerson();
-                        tGroupPerson.setUpdateId(securityUtil.getCurrUser().getId());
-                        tGroupPerson.setUpdateTime(new Date());
-                        tGroupPerson.setOrderId(idConsolidated);
-                        itGroupPersonService.update(tGroupPerson, queryWrapper);
+                        List<TGroupPerson> tGroupPersonList = itGroupPersonService.list(queryWrapper);
+                        if(tGroupPersonList!=null && tGroupPersonList.size()>0){
+                            TGroupPerson tGroupPerson = new TGroupPerson();
+                            tGroupPerson.setUpdateId(securityUtil.getCurrUser().getId());
+                            tGroupPerson.setUpdateTime(new Date());
+                            tGroupPerson.setOrderId(idConsolidated);
+                            boolean resG = itGroupPersonService.update(tGroupPerson, queryWrapper);
+                            if(!resG){
+                                //手工回滚异常
+                                TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                                return ResultUtil.error("合并失败");
+                            }
 
-                        //更改订单对应的分组和分组项目
-                        QueryWrapper<TOrderGroup> orderGroupQueryWrapper = new QueryWrapper<>();
-                        orderGroupQueryWrapper.eq("group_order_id", id);
-                        TOrderGroup tOrderGroup = new TOrderGroup();
-                        tOrderGroup.setUpdateId(securityUtil.getCurrUser().getId());
-                        tOrderGroup.setUpdateTime(new Date());
-                        tOrderGroup.setGroupOrderId(idConsolidated);
-                        itOrderGroupService.update(tOrderGroup, orderGroupQueryWrapper);
-                        //更改订单对应的分组的组合项目
-                        QueryWrapper<TOrderGroupItem> itemQueryWrapper = new QueryWrapper<>();
-                        itemQueryWrapper.eq("group_order_id", id);
-                        TOrderGroupItem tOrderGroupItem = new TOrderGroupItem();
-                        tOrderGroupItem.setUpdateId(securityUtil.getCurrUser().getId());
-                        tOrderGroupItem.setUpdateTime(new Date());
-                        tOrderGroupItem.setGroupOrderId(idConsolidated);
-                        itOrderGroupItemService.update(tOrderGroupItem, itemQueryWrapper);
-                        //更改订单对应的分组的基础项目
-                        QueryWrapper<TOrderGroupItemProject> itemProjectQueryWrapper = new QueryWrapper<>();
-                        itemProjectQueryWrapper.eq("group_order_id", id);
-                        TOrderGroupItemProject tOrderGroupItemProject = new TOrderGroupItemProject();
-                        tOrderGroupItemProject.setGroupOrderId(idConsolidated);
-                        itOrderGroupItemProjectService.update(tOrderGroupItemProject, itemProjectQueryWrapper);
+                            //更改订单对应的分组和分组项目
+                            QueryWrapper<TOrderGroup> orderGroupQueryWrapper = new QueryWrapper<>();
+                            orderGroupQueryWrapper.eq("group_order_id", id);
+                            TOrderGroup tOrderGroup = new TOrderGroup();
+                            tOrderGroup.setUpdateId(securityUtil.getCurrUser().getId());
+                            tOrderGroup.setUpdateTime(new Date());
+                            tOrderGroup.setGroupOrderId(idConsolidated);
+                            boolean resO = itOrderGroupService.update(tOrderGroup, orderGroupQueryWrapper);
+                            if(!resO){
+                                //手工回滚异常
+                                TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                                return ResultUtil.error("合并失败");
+                            }
+                            //更改订单对应的分组的组合项目
+                            QueryWrapper<TOrderGroupItem> itemQueryWrapper = new QueryWrapper<>();
+                            itemQueryWrapper.eq("group_order_id", id);
+                            TOrderGroupItem tOrderGroupItem = new TOrderGroupItem();
+                            tOrderGroupItem.setUpdateId(securityUtil.getCurrUser().getId());
+                            tOrderGroupItem.setUpdateTime(new Date());
+                            tOrderGroupItem.setGroupOrderId(idConsolidated);
+                            boolean resOR = itOrderGroupItemService.update(tOrderGroupItem, itemQueryWrapper);
+                            if(!resOR){
+                                //手工回滚异常
+                                TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                                return ResultUtil.error("合并失败");
+                            }
+                            //更改订单对应的分组的基础项目
+                            QueryWrapper<TOrderGroupItemProject> itemProjectQueryWrapper = new QueryWrapper<>();
+                            itemProjectQueryWrapper.eq("group_order_id", id);
+                            TOrderGroupItemProject tOrderGroupItemProject = new TOrderGroupItemProject();
+                            tOrderGroupItemProject.setGroupOrderId(idConsolidated);
+                            boolean resORi = itOrderGroupItemProjectService.update(tOrderGroupItemProject, itemProjectQueryWrapper);
+                            if(!resORi){
+                                //手工回滚异常
+                                TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                                return ResultUtil.error("合并失败");
+                            }
 
-                    }
-                    else {
-                        new Exception("删除订单失败");
+
+                            //复查人员表相关更改
+                            //更改订单对应的复查人员信息
+                            QueryWrapper<TReviewPerson> tReviewPersonQueryWrapper = new QueryWrapper<>();
+                            tReviewPersonQueryWrapper.eq("order_id", id);
+                            List<TReviewPerson> tReviewPersonList = itReviewPersonService.list(tReviewPersonQueryWrapper);
+                            if(tReviewPersonList!=null && tReviewPersonList.size()>0){
+                                TReviewPerson tReviewPerson = new TReviewPerson();
+                                tReviewPerson.setUpdateId(securityUtil.getCurrUser().getId());
+                                tReviewPerson.setUpdateTime(new Date());
+                                tReviewPerson.setOrderId(idConsolidated);
+                                boolean resTR = itReviewPersonService.update(tReviewPerson, tReviewPersonQueryWrapper);
+                                if(!resTR){
+                                    //手工回滚异常
+                                    TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                                    return ResultUtil.error("合并失败");
+                                }
+                            }
+                        }
+                    }else {
+                        //手工回滚异常
+                        TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                        return ResultUtil.error("合并失败");
                     }
                 }
             }
@@ -1425,6 +1670,8 @@ public class TGroupOrderController {
 
         } catch (Exception e) {
             e.printStackTrace();
+            //手工回滚异常
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             return ResultUtil.error("合并异常:" + e.getMessage());
         }
     }
@@ -1498,7 +1745,7 @@ public class TGroupOrderController {
             if(StringUtils.isBlank(orderId)){
                 return ResultUtil.error("合同上传失败:" + "订单Id为空");
             }
-            if(fileName.indexOf(".pdf")==-1){
+            if((fileName.indexOf(".pdf")==-1 && StringUtils.isNotBlank(name) && !name.contains("执照")) || (fileName.indexOf(".pdf")==-1 && fileName.indexOf(".png") == -1 && fileName.indexOf(".jpg") == -1 && fileName.indexOf(".jpeg") == -1 && StringUtils.isNotBlank(name) && name.contains("执照"))){
                 return ResultUtil.error("合同上传异常:" + "上传的文件类型不对");
             }
             String classPath = DocUtil.getClassPath();
@@ -1518,6 +1765,14 @@ public class TGroupOrderController {
                     if(StringUtils.isNotBlank(tGroupOrder.getOrderEvaluatePath())) {
                         orderPathNow = tGroupOrder.getOrderEvaluatePath();
                     }
+                }else if(nameNow.contains("基本信息")){
+                    if(StringUtils.isNotBlank(tGroupOrder.getOrderInfoPath())) {
+                        orderPathNow = tGroupOrder.getOrderInfoPath();
+                    }
+                }else if(nameNow.contains("人员名单")){
+                    if(StringUtils.isNotBlank(tGroupOrder.getOrderPersonDataPath())) {
+                        orderPathNow = tGroupOrder.getOrderPersonDataPath();
+                    }
                 }else{
                     if(StringUtils.isNotBlank(tGroupOrder.getOrderPath())) {
                         orderPathNow = tGroupOrder.getOrderPath();
@@ -1532,19 +1787,38 @@ public class TGroupOrderController {
             SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHHmmss");
             String DataStr = format.format(new Date());
 
-            String path = classPath.split(":")[0] + ":" + DocUtil.basePath + "order/" + orderId+nameNow + "/" + DataStr+".pdf";
-            String orderPath = "tempfile/wordTemplate/order/"+ orderId+nameNow + "/" + DataStr+".pdf";
-            //获取文件地址
-            //先创建输出文件路径
-            File dest = (new File(path));
-            if (!dest.getParentFile().exists()) {
-                dest.getParentFile().mkdirs();
+            String path = "";
+            String orderPath = "";
+
+            if(fileName.indexOf(".pdf") > -1 || fileName.indexOf(".Pdf") > -1){//pdf文件上传
+                path = classPath.split(":")[0] + ":" + DocUtil.basePath + "order/" + orderId+nameNow + "/" + DataStr+".pdf";
+                orderPath = "tempfile/wordTemplate/order/"+ orderId+nameNow + "/" + DataStr+".pdf";
+                //获取文件地址
+                //先创建输出文件路径
+                File dest = (new File(path));
+                if (!dest.getParentFile().exists()) {
+                    dest.getParentFile().mkdirs();
+                }
+                multipartFile.transferTo(dest);
+            }else if(fileName.indexOf(".png") > -1 || fileName.indexOf(".jpg") > -1 || fileName.indexOf(".jpeg") > -1){//图片上传
+                path = classPath.split(":")[0] + ":" + DocUtil.basePath + "order/" + orderId+nameNow + "/" + DataStr+"/" + fileName;
+                orderPath = "tempfile/wordTemplate/order/"+ orderId+nameNow + "/" + DataStr+"/" + fileName;
+                //获取文件地址
+                //先创建输出文件路径
+                File dest = (new File(path));
+                if (!dest.getParentFile().exists()) {
+                    dest.getParentFile().mkdirs();
+                }
+                FileUtils.writeByteArrayToFile(dest,multipartFile.getBytes());
             }
-            multipartFile.transferTo(dest);
             if(nameNow.contains("执照")){
                 tGroupOrder.setOrderLicensePath(orderPath);
             }else if(nameNow.contains("评价")){
                 tGroupOrder.setOrderEvaluatePath(orderPath);
+            }else if(nameNow.contains("基本信息")){
+                tGroupOrder.setOrderInfoPath(orderPath);
+            }else if(nameNow.contains("人员名单")){
+                tGroupOrder.setOrderPersonDataPath(orderPath);
             }else{
                 tGroupOrder.setOrderPath(orderPath);
             }
@@ -1559,7 +1833,6 @@ public class TGroupOrderController {
         }
 
     }
-
     /**
      * 功能描述：上传订单附件
      *
@@ -1678,7 +1951,6 @@ public class TGroupOrderController {
             return ResultUtil.error("保存异常:" + e.getMessage());
         }
     }
-
     /**
      * 生成体检编号
      *
@@ -1726,5 +1998,57 @@ public class TGroupOrderController {
             testNum += code;
         }
         return testNum;
+    }
+
+    /**
+     * 功能描述：网报确认
+     *
+     * @param ids 主键集合
+     * @return 返回结果
+     */
+    @ApiOperation("根据主键来修改团检订单网报确认状态")
+    @SystemLog(description = "根据主键来修改团检订单网报确认状态", type = LogType.OPERATION)
+    @PostMapping("updateTOrderHistoryStateById")
+    @Transactional(rollbackOn = Exception.class)
+    public Result<Object> updateTOrderHistoryStateById(@RequestParam String[] ids) {
+        if (ids == null || ids.length == 0) {
+            return ResultUtil.error("参数为空，请联系管理员！！");
+        }
+        try {
+            QueryWrapper<TGroupOrder> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("del_flag",0);
+            queryWrapper.in("id",ids);
+            TGroupOrder tGroupOrder = new TGroupOrder();
+            tGroupOrder.setDeleteId("1");
+            boolean res = tGroupOrderService.update(tGroupOrder,queryWrapper);
+            if (res) {
+                return ResultUtil.data(res, "确认成功");
+            } else {
+                return ResultUtil.error("确认失败");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResultUtil.error("确认异常:" + e.getMessage());
+        }
+    }
+
+    /**
+     * 功能描述：实现团检订单查询
+     *
+     * @return 返回获取结果
+     */
+    @SystemLog(description = "分页查询团检订单数据", type = LogType.OPERATION)
+    @ApiOperation("查询团检订单数据")
+    @GetMapping("getTGroupOrderList")
+    public Result<Object> getTGroupOrderList(TGroupOrder tGroupOrder) {
+        try {
+            List<TGroupOrder> result = tGroupOrderService.queryAllTGroupOrderList(tGroupOrder);
+            result = result.stream().filter(aa->StringUtils.isNotBlank(aa.getGroupUnitName()) ).collect(Collectors.toList());
+            Map<String, List<TGroupOrder>> map = result.stream().collect(Collectors.groupingBy(TGroupOrder::getGroupUnitName));
+            return ResultUtil.data(map);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResultUtil.error("查询异常:" + e.getMessage());
+        }
     }
 }

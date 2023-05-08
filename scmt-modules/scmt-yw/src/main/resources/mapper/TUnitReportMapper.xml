@@ -53,7 +53,7 @@
     <select id="checkThePeopleStatisticsTable" resultType="com.scmt.healthy.entity.TUnitReport">
         SELECT
             hazard_factors_text,
-            work_state_text,
+            replace(work_state_text,' ','') as work_state_text,
             physical_type,
             SUM(CASE WHEN check_result IS NOT NULL THEN 1 ELSE 0 END) AS total,
             SUM(CASE WHEN check_result like '%0%' THEN 1 ELSE 0 END) AS noAbnormalNum,
@@ -73,12 +73,13 @@
           AND is_pass >= 2
         GROUP BY
             hazard_factors,work_state_code
+        order by replace(work_state_text,' ','') asc
     </select>
 
     <select id="checkThePeopleStatisticsTableFinish" resultType="com.scmt.healthy.entity.TUnitReport">
         SELECT
             hazard_factors_text,
-            work_state_text,
+            replace(work_state_text,' ','') as work_state_text,
             physical_type,
             SUM(CASE WHEN check_result IS NOT NULL THEN 1 ELSE 0 END) AS total,
             SUM(CASE WHEN check_result like '%0%' THEN 1 ELSE 0 END) AS noAbnormalNum,
@@ -98,6 +99,7 @@
           AND is_pass > 3
         GROUP BY
             hazard_factors,work_state_code
+        order by replace(work_state_text,' ','') asc
     </select>
 
     <select id="getTUnitReportByOrderId" resultType="com.scmt.healthy.entity.TUnitReport">
