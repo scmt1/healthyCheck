@@ -359,21 +359,12 @@
         o.order_code,
         u.name AS unit_name,
         u.link_phone2 as unit_phone,
-        aa.test_num as last_test_num,
-        aa.regist_date as last_regist_date
+        gp.test_num as last_test_num,
+        gp.regist_date as last_regist_date
         FROM t_review_person rp
         LEFT JOIN t_group_order o on rp.order_id = o.id and o.del_flag = 0
         LEFT JOIN t_group_unit u on rp.unit_id = u.id and u.del_flag = 0
         left join t_group_person gp on gp.id = rp.first_person_id and gp.del_flag = 0
-        LEFT JOIN ((
-        SELECT
-        id,
-        test_num,
-        regist_date
-        FROM
-        t_group_person
-        ) UNION ALL
-        ( SELECT id, test_num, regist_date FROM t_review_person)) as aa ON aa.id = rp.old_person_id
         WHERE rp.del_flag = 0
         <if test="ids != null and ids.size > 0">
             and rp.id in
@@ -630,7 +621,6 @@ FROM
         t_inspection_record WHERE del_flag = 0 and conclusion_code in (12003 ,12004) ) as i,
         (select (@rowno:=0)) b ORDER BY i.create_time DESC) c
     </select>
-
     <select id="selectGroupPersonCountByIdCardAndCheckDate" resultType="Integer">
         SELECT
 	        COUNT(*)
@@ -639,5 +629,4 @@ FROM
         WHERE
 	        id_card = #{idCard}
 	    AND check_date LIKE CONCAT('%',#{checkDate},'%')
-    </select>
-</mapper>
+    </select></mapper>
