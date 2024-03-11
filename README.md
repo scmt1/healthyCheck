@@ -29,8 +29,7 @@ healthyCheck是一套适合互联网企业使用的开源体检管理系统，�
 
 healthyCheck使用`Spring Boot`和`iView Vue`开发，集成`Spring Security`实现权限管理功能，是一套非常实用的web开发框架。
 
-前端工程项目代码：https://gitee.com/scmt1/healthyCheck-ui
-app工程项目代码：https://gitee.com/scmt1/healthy-check-app
+前端工程项目代码：https://github.com/scmt1/healthyCheckUi
 
 
 ## 🍎 项目特点
@@ -44,7 +43,7 @@ app工程项目代码：https://gitee.com/scmt1/healthy-check-app
 * 前后端分离架构，方便二次开发
 
 ## 🍟 项目体验
-- 健康体检管理系统：[https://223.87.166.240:9123](https://223.87.166.240:9123 "健康体检管理系统体验")
+- 健康体检管理系统：[https://223.87.166.240:9123](https://223.87.166.240:9123 "健康体检管理系统体验")（体检账号请加QQ群536624215联系管理员）
 
 ## 🥞 系统架构
 
