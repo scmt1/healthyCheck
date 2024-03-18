@@ -5,7 +5,7 @@
 	<strong>适合互联网企业使用的开源职业体检管理系统</strong>
 </p>
 <p align="center">
-	👉 <a href="https://223.87.166.240:9123">https://scmtww.gnway.cc</a> 👈
+	👉 <a href="https://www.scmintu.com/">https://www.scmintu.com/</a> 👈
 </p>
 
 <p align="center">
@@ -43,7 +43,7 @@ healthyCheck使用`Spring Boot`和`iView Vue`开发，集成`Spring Security`实
 * 前后端分离架构，方便二次开发
 
 ## 🍟 项目体验
-- 健康体检管理系统：[https://223.87.166.240:9123](https://223.87.166.240:9123 "健康体检管理系统体验")（体检账号请加QQ群536624215联系管理员）
+- 健康体检管理系统：[https://tj.scmintu.com:9123](https://tj.scmintu.com:9123 "健康体检管理系统体验")（体检账号请加QQ群536624215联系管理员）
 
 ## 🥞 系统架构
 
@@ -154,9 +154,10 @@ healthyCheck
 ***
 * 公司名称：四川民图科技有限公司
 * 地址：成都市金牛区北三环路一段221号
-* 电话：0830-2663368
+* 电话：400-855-2332
 * 业务合作：scmtkj@163.com
-## 🥪 交流群
-如果需要体验账号以及数据库请加QQ群（536624215）
+* 公司主页：https://www.scmintu.com/
+## 🥪 交流咨询群
+QQ群 536624215
 
 ![qq](vx_images/572785117230348.png)
