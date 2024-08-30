@@ -1,5 +1,5 @@
 <p align="center">
-	<a href="hhttps://223.87.166.240:9123"><img src="http://223.87.166.240:8014/logo.png"></a>
+	<a href="https://www.scmintu.com"><img src="vx_images/logo.png"></a>
 </p>
 <p align="center">
 	<strong>适合互联网企业使用的开源职业体检管理系统</strong>
@@ -29,7 +29,7 @@ healthyCheck是一套适合互联网企业使用的开源体检管理系统，�
 
 healthyCheck使用`Spring Boot`和`iView Vue`开发，集成`Spring Security`实现权限管理功能，是一套非常实用的web开发框架。
 
-前端工程项目代码：https://github.com/scmt1/healthyCheckUi
+前端工程项目代码：https://gitee.com/scmt1/healthyCheck-ui
 
 
 ## 🍎 项目特点
@@ -152,7 +152,6 @@ healthyCheck
 ![035](vx_images/8.jpg )![036](vx_images/9.jpg )
 
 
-
 ## 开源版使用须知
 ***
 * 需标注"代码来源于四川民图科技开源项目"后即可免费自用运营
@@ -164,7 +163,7 @@ healthyCheck
 ## 商业合作
 ***
 *  如果你想使用功能更完善的体检系统，请联系电话：400-855-2332
-*  如果您想基于党体检系统进行定制开发，我们提供有偿定制服务支持！
+*  如果您想基于体检系统进行定制开发，我们提供有偿定制服务支持！
 *  其他合作模式不限，欢迎来撩！
 *  联系我们（商务请联系电话：400-855-2332）
 
@@ -176,6 +175,6 @@ healthyCheck
 * 业务合作：scmtkj@163.com
 * 公司主页：https://www.scmintu.com/
 ## 🥪 交流咨询群
-QQ群 536624215
+如果需要体验账号以及数据库请加QQ群（536624215）
 
 ![qq](vx_images/572785117230348.png)
