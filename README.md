@@ -42,8 +42,6 @@ healthyCheck使用`Spring Boot`和`iView Vue`开发，集成`Spring Security`实
 * 使用`spring security`实现权限管理
 * 前后端分离架构，方便二次开发
 
-## 🍟 项目体验
-- 健康体检管理系统：[https://tj.scmintu.com:9123](https://tj.scmintu.com:9123 "健康体检管理系统体验")（体检账号请加QQ群536624215联系管理员）
 
 ## 🥞 系统架构
 
@@ -153,7 +151,7 @@ healthyCheck
 
 ### 自助服务端
 ![](vx_images/zzzd1.jpg )
-![](vx_images/zzzd2.png )
+![](vx_images/zzzd2.png )file:///D:/git/mingtu/开源/healthyCheckUi/README.md
 ## 🥪开源版使用须知
 ***
 * 需标注"代码来源于四川民图科技开源项目"后即可免费自用运营
@@ -177,7 +175,7 @@ healthyCheck
 * 业务合作：scmtkj@163.com
 * 公司主页：https://www.scmintu.com/
 ## 🥪 交流咨询群
-如果需要体验账号以及数据库请加QQ群（536624215）
+如果需要请加QQ群（536624215）
 
 ![qq](vx_images/572785117230348.png)
 微信联系方式：微信号 wxid_1uhin30bp6xv12
